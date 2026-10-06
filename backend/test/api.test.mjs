@@ -1,0 +1,180 @@
+// Pruebas de extremo a extremo contra una API en ejecución.
+//   API_URL=http://localhost:3000 ADMIN_EMAIL=... ADMIN_PASSWORD=... npm test
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+const URL_API = process.env.API_URL ?? 'http://localhost:3000';
+const ADMIN = { correo: process.env.ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD };
+const unico = Date.now();
+
+function cliente() {
+  let cookie = '';
+  return async (metodo, ruta, cuerpo, cabeceras = { 'X-Patas': '1' }) => {
+    const r = await fetch(URL_API + ruta, {
+      method: metodo,
+      headers: { ...(cuerpo ? { 'Content-Type': 'application/json' } : {}), ...(metodo === 'GET' ? {} : cabeceras), cookie },
+      body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+    });
+    const sc = r.headers.get('set-cookie');
+    if (sc) cookie = sc.split(';')[0];
+    return { status: r.status, datos: await r.json().catch(() => null), setCookie: sc };
+  };
+}
+const registro = (n) => ({ nombre: `Persona ${n}`, correo: `p${n}-${unico}@prueba.test`, telefono: '3101234567', barrio: 'Centro', password: 'ClaveSegura2026', aceptaDatos: true });
+const solicitud = (mascotaId) => ({
+  mascotaId, nombre: 'Ana Pérez', cedula: '1020304050', telefono: '3101234567', correo: 'ana@prueba.test', barrio: 'El Trébol',
+  tipoVivienda: 'Apartamento', tieneOtrasMascotas: false, todosEnCasaDeAcuerdo: true, horasSoloAlDia: 4, motivoAdopcion: 'Queremos darle un hogar.',
+  hayNinos: true, edadesNinos: '4 y 9', hayAlergias: false, hayEmbarazo: false, conoceResponsabilidadesLey: true,
+});
+
+const ana = cliente(), hogar = cliente(), admin = cliente(), anon = cliente();
+let mascotas, hogarId, codigoHogar, mascotaHogar;
+
+test('lo público no expone datos de los hogares de paso', async () => {
+  const { datos } = await anon('GET', '/api/lugares');
+  const hogares = datos.filter((l) => l.tipo === 'hogar_paso');
+  assert.ok(hogares.length > 0);
+  for (const h of hogares) {
+    assert.match(h.nombre, /^Hogar de Paso HP-\d{4}$/);
+    for (const campo of ['direccion', 'lat', 'lng', 'telefono', 'responsable', 'correo', 'sector'])
+      assert.equal(h[campo], undefined, `un hogar no debe publicar ${campo}`);
+  }
+  mascotas = (await anon('GET', '/api/mascotas')).datos;
+  for (const m of mascotas.filter((m) => m.esHogarPaso)) assert.equal(m.contactoWhatsapp, undefined);
+});
+
+test('las escrituras exigen la cabecera anti-CSRF y sesión', async () => {
+  assert.equal((await anon('POST', '/api/donaciones', { nombre: 'x' }, {})).status, 403);
+  assert.equal((await anon('POST', '/api/solicitudes', solicitud(mascotas[0].id))).status, 401);
+  assert.equal((await anon('GET', '/api/admin/hogares')).status, 401);
+});
+
+test('registro, cookie httpOnly y contraseña débil', async () => {
+  assert.equal((await ana('POST', '/api/auth/registro', { ...registro('ana'), password: 'corta' })).status, 400);
+  const r = await ana('POST', '/api/auth/registro', registro('ana'));
+  assert.equal(r.status, 201);
+  assert.match(r.setCookie, /HttpOnly/i);
+  assert.match(r.setCookie, /SameSite=Lax/i);
+  assert.equal(r.datos.rol, 'adoptante');
+  assert.equal((await cliente()('POST', '/api/auth/registro', registro('ana'))).status, 409);
+  assert.equal((await cliente()('POST', '/api/auth/login', { correo: registro('ana').correo, password: 'incorrecta123' })).status, 401);
+});
+
+test('adopción: preguntas nuevas obligatorias', async () => {
+  const m = mascotas.find((m) => m.estado === 'Disponible');
+  const sinLey = { ...solicitud(m.id), conoceResponsabilidadesLey: false };
+  assert.equal((await ana('POST', '/api/solicitudes', sinLey)).status, 400);
+  const { hayEmbarazo, ...sinEmbarazo } = solicitud(m.id);
+  assert.equal((await ana('POST', '/api/solicitudes', sinEmbarazo)).status, 400);
+  const r = await ana('POST', '/api/solicitudes', solicitud(m.id));
+  assert.equal(r.status, 201);
+  assert.match(r.datos.radicado, /^ADP-\d{4}-\d{5}$/);
+  assert.equal(r.datos.hayNinos, true);
+  assert.equal(r.datos.edadesNinos, '4 y 9');
+  assert.equal((await ana('POST', '/api/solicitudes', solicitud(m.id))).status, 409, 'no se duplica');
+  // un ciudadano no puede aprobar su propia solicitud ni ver el panel
+  assert.equal((await ana('PATCH', `/api/solicitudes/${r.datos.id}`, { estado: 'Aprobada' })).status, 403);
+  assert.equal((await ana('GET', '/api/admin/hogares')).status, 403);
+  assert.equal((await ana('GET', '/api/donaciones')).status, 403);
+});
+
+test('hogar de paso: queda pendiente con código y no puede publicar hasta ser verificado', async () => {
+  await hogar('POST', '/api/auth/registro', registro('hogar'));
+  const r = await hogar('POST', '/api/hogares', { nombre: 'Hogar Gómez', responsable: 'Luis Gómez', telefono: '3209998877', sector: 'Centro', direccion: 'Calle 1 # 2-3', capacidad: 1, aceptaVisita: true });
+  assert.equal(r.status, 201);
+  assert.match(r.datos.codigo, /^HP-\d{4}$/);
+  assert.equal(r.datos.estado, 'pendiente');
+  hogarId = r.datos.id; codigoHogar = r.datos.codigo;
+  assert.ok(!(await anon('GET', '/api/lugares')).datos.some((l) => l.id === hogarId), 'pendiente no es público');
+  assert.equal((await hogar('POST', '/api/mascotas', {})).status, 403);
+});
+
+test('admin verifica el hogar; el hogar publica y respeta su capacidad', async (t) => {
+  if (!ADMIN.correo) return t.skip('sin credenciales de admin');
+  assert.equal((await admin('POST', '/api/auth/login', ADMIN)).status, 200);
+  const lista = (await admin('GET', '/api/admin/hogares')).datos;
+  assert.equal(lista.find((h) => h.id === hogarId).direccion, 'Calle 1 # 2-3', 'el admin sí ve la dirección');
+  assert.equal((await admin('PATCH', `/api/admin/hogares/${hogarId}`, { estado: 'verificado' })).status, 200);
+  assert.equal((await hogar('GET', '/api/auth/yo')).datos.rol, 'hogar_paso');
+
+  const mascota = { nombre: 'Nube', especie: 'gato', raza: 'Criolla', edadCategoria: 'Joven', edadTexto: '1 año', genero: 'Hembra', tamano: 'Pequeño',
+    fotos: ['https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba'], descripcion: 'Gatita rescatada muy dulce.', temperamento: ['Dulce'],
+    salud: { vacunado: true, esterilizado: true, desparasitado: true, microchip: false } };
+  assert.equal((await hogar('POST', '/api/mascotas', { ...mascota, fotos: ['javascript:alert(1)'] })).status, 400);
+  assert.equal((await hogar('POST', '/api/mascotas', { ...mascota, fotos: ['data:image/png;base64,AAAA'] })).status, 400);
+  const r = await hogar('POST', '/api/mascotas', mascota);
+  assert.equal(r.status, 201);
+  mascotaHogar = r.datos;
+  assert.equal(r.datos.hogarOrefugioNombre, `Hogar de Paso ${codigoHogar}`);
+  assert.equal(r.datos.contactoWhatsapp, undefined);
+  assert.equal((await hogar('POST', '/api/mascotas', mascota)).status, 409, 'capacidad 1');
+  // no puede tocar mascotas de otro lugar
+  const ajena = mascotas.find((m) => m.hogarOrefugioId !== hogarId);
+  assert.equal((await hogar('DELETE', `/api/mascotas/${ajena.id}`)).status, 403);
+  const publico = (await anon('GET', '/api/lugares')).datos.find((l) => l.id === hogarId);
+  assert.deepEqual(Object.keys(publico).sort(), ['capacidad', 'codigo', 'descripcion', 'id', 'mascotasActuales', 'municipio', 'nombre', 'tipo', 'verificado']);
+});
+
+test('flujo de aprobación: el hogar no ve la cédula y la mascota queda adoptada', async (t) => {
+  if (!mascotaHogar) return t.skip('depende del admin');
+  const s = await ana('POST', '/api/solicitudes', solicitud(mascotaHogar.id));
+  assert.equal(s.status, 201);
+  const vista = (await hogar('GET', '/api/solicitudes')).datos.find((x) => x.id === s.datos.id);
+  assert.equal(vista.solicitanteCedula, '');
+  assert.equal(vista.hayNinos, true);
+  assert.equal((await hogar('PATCH', `/api/solicitudes/${s.datos.id}`, { estado: 'Aprobada', notas: 'Apta' })).status, 200);
+  assert.equal((await anon('GET', '/api/mascotas')).datos.find((m) => m.id === mascotaHogar.id).estado, 'Adoptado');
+  const adopcion = (await anon('GET', '/api/adopciones')).datos.find((a) => a.mascotaNombre === 'Nube');
+  assert.equal(adopcion.adoptanteNombre, 'Ana', 'solo el primer nombre es público');
+  assert.equal((await ana('GET', '/api/solicitudes')).datos.find((x) => x.id === s.datos.id).notasGestor, '', 'notas internas ocultas');
+});
+
+test('registro de mascota propia y de manejo especial', async () => {
+  const prop = { propNombre: 'Ana Pérez', propTipoDoc: 'CC', propNumDoc: '1020304050', propTelefono: '3101234567', propDireccion: 'Carrera 3 # 4-5', propBarrio: 'Centro' };
+  const m = await ana('POST', '/api/mascotas-propias', { ...prop, propZona: 'Urbana', nombre: 'Tango', especie: 'perro', raza: 'Criollo', sexo: 'Macho', edadAnios: 3, edadMeses: 2,
+    esterilizado: true, antirrabica: true, antirrabicaFecha: '2026-03-10', antirrabicaLote: 'L123', aceptaDatos: true });
+  assert.equal(m.status, 201);
+  assert.match(m.datos.radicado, /^MAS-/);
+  const mias = (await ana('GET', '/api/mascotas-propias')).datos;
+  assert.equal(mias.length, 1);
+  assert.equal(mias[0].antirrabica_fecha, '2026-03-10');
+  assert.equal((await hogar('GET', '/api/mascotas-propias?todas=1')).datos.length, 0, 'otro usuario no ve las mías');
+
+  const base = { ...prop, nombre: 'Thor', categoria: 'raza', raza: 'Rottweiler', sexo: 'Macho', residencia: 'Carrera 3 # 4-5', destino: 'convivencia',
+    polizaTiene: true, polizaAseguradora: 'Seguros X', polizaNumero: 'P-1', polizaVigencia: '2027-01-01', vacunasVigentes: true, declaraVeracidad: true };
+  assert.equal((await ana('POST', '/api/manejo-especial', { ...base, propMayorEdad: false })).status, 400);
+  const e = await ana('POST', '/api/manejo-especial', { ...base, propMayorEdad: true });
+  assert.equal(e.status, 201);
+  assert.match(e.datos.radicado, /^RME-/);
+  assert.equal((await ana('PATCH', `/api/manejo-especial/${e.datos.id}`, { estado: 'Aprobado' })).status, 403);
+});
+
+test('quiero donar: público, validado', async () => {
+  assert.equal((await anon('POST', '/api/donaciones', { nombre: 'Carlos Ruiz', telefono: '3001112233', tipo: 'Bitcoin', descripcion: 'algo', aceptaDatos: true })).status, 400);
+  const r = await anon('POST', '/api/donaciones', { nombre: 'Carlos Ruiz', telefono: '3001112233', tipo: 'Alimento', descripcion: '2 bultos de concentrado', aceptaDatos: true });
+  assert.equal(r.status, 201);
+  assert.match(r.datos.radicado, /^DON-/);
+});
+
+test('subida de archivos: solo imágenes reales', async () => {
+  const subir = async (bytes, nombre) => {
+    const f = new FormData();
+    f.append('archivo', new Blob([bytes]), nombre);
+    return fetch(URL_API + '/api/archivos', { method: 'POST', body: f, headers: { 'X-Patas': '1', cookie: await cookieDeAna() } });
+  };
+  const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0]);
+  const ok = await subir(png, 'foto.png');
+  assert.equal(ok.status, 201);
+  const { url } = await ok.json();
+  assert.match(url, /^\/uploads\/[a-f0-9]{32}\.png$/);
+  const servido = await fetch(URL_API + url);
+  assert.equal(servido.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal((await subir(new TextEncoder().encode('<script>alert(1)</script>'), 'foto.png')).status, 415);
+});
+
+// multipart no pasa por el cliente JSON: se obtiene una cookie iniciando sesión de nuevo
+async function cookieDeAna() {
+  const r = await fetch(URL_API + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Patas': '1' },
+    body: JSON.stringify({ correo: registro('ana').correo, password: 'ClaveSegura2026' }) });
+  return r.headers.get('set-cookie').split(';')[0];
+}

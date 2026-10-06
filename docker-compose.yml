@@ -1,0 +1,30 @@
+# PATAS · un solo contenedor (PostgreSQL + API + web)
+#   1) copia .env.example a .env y define ADMIN_EMAIL y ADMIN_PASSWORD
+#   2) docker compose up -d --build
+#   3) abre http://localhost:8080
+name: patas
+
+services:
+  patas:
+    build: .
+    image: patas:1.1
+    restart: unless-stopped
+    ports:
+      - "${PUERTO_WEB:-8080}:8080"
+    environment:
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SEED_DEMO: ${SEED_DEMO:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      JWT_SECRET: ${JWT_SECRET:-}        # vacío = se genera solo y se guarda en el volumen
+      TRUST_PROXY: ${TRUST_PROXY:-0}     # 1 si hay un proxy o Ingress delante
+    volumes:
+      - datos:/data                      # base de datos, fotos y secreto de sesión
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+volumes:
+  datos:

@@ -1,0 +1,8 @@
+**/node_modules
+**/dist
+.env
+.env.*
+_respaldo_prototipo
+backend/test
+*.md
+.git
