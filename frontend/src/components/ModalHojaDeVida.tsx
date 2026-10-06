@@ -21,9 +21,9 @@ export default function ModalHojaDeVida({ mascota, onClose }: ModalHojaDeVidaPro
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-start justify-center p-2 sm:p-6 overscroll-contain">
       <div
-        className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-100 relative my-8"
+        className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-100 relative my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header con botón de cierre */}

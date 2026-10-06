@@ -9,12 +9,12 @@ const U = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&f
 export async function sembrar(log: FastifyBaseLogger): Promise<void> {
   const [{ n: admins }] = await q("SELECT count(*)::int AS n FROM usuarios WHERE rol='admin'");
   if (!admins) {
-    if (config.adminCorreo && config.adminPassword.length >= 12) {
+    if (config.adminCorreo && config.adminPassword.length >= 10) {
       await q("INSERT INTO usuarios (nombre, correo, password_hash, rol) VALUES ('Dirección de Protección Animal', $1, $2, 'admin')",
         [config.adminCorreo.toLowerCase(), await hashPassword(config.adminPassword)]);
       log.info(`Administrador inicial creado: ${config.adminCorreo}`);
     } else {
-      log.warn('No hay administrador. Define ADMIN_EMAIL y ADMIN_PASSWORD (mínimo 12 caracteres) y reinicia.');
+      log.warn('No hay administrador. Define ADMIN_EMAIL y ADMIN_PASSWORD (mínimo 10 caracteres) y reinicia.');
     }
   }
 

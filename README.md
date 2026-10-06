@@ -8,7 +8,7 @@ servicios de la Secretaría de Ambiente y la Dirección de Protección Animal.
 Toda la plataforma vive en **una imagen y un contenedor**: PostgreSQL, la API y la aplicación web.
 
 ```bash
-cp .env.example .env        # define ADMIN_EMAIL y ADMIN_PASSWORD (mínimo 12 caracteres)
+cp .env.example .env        # define ADMIN_EMAIL y ADMIN_PASSWORD (mínimo 10 caracteres)
 docker compose up -d --build
 ```
 

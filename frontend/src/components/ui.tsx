@@ -95,8 +95,8 @@ export function Modal({ titulo, subtitulo, sobretitulo, icono, onClose, children
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-2 sm:p-6 overscroll-contain" role="dialog" aria-modal="true" aria-label={titulo}>
-      <div className={`bg-white rounded-3xl ${ancho} w-full overflow-hidden shadow-2xl border border-gray-100 relative my-1 sm:my-4`}>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-start justify-center p-2 sm:p-6 overscroll-contain" role="dialog" aria-modal="true" aria-label={titulo}>
+      <div className={`bg-white rounded-3xl ${ancho} w-full overflow-hidden shadow-2xl border border-gray-100 relative my-auto`}>
         <div className={`bg-gradient-to-r ${color} text-white p-5 sm:p-6 relative`}>
           <button onClick={onClose} aria-label="Cerrar" className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-2 rounded-full transition-colors cursor-pointer">
             <X className="w-5 h-5" />
