@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { q } from '../db.js';
 import { ErrorHttp, auditar, cerrarSesion, exigir, hashPassword, iniciarSesion, usuarioDe, verificarPassword, type Usuario } from '../auth.js';
 import { correo, telefono, texto, validar } from '../validar.js';
+import { captcha } from '../recaptcha.js';
 
 const publico = (u: Usuario, codigoLugar?: string | null) => ({
   id: u.id, nombre: u.nombre, correo: u.correo, telefono: u.telefono,
@@ -23,7 +24,7 @@ const HASH_FALSO = await hashPassword('relleno-para-tiempo-constante');
 export default async function rutasAuth(app: FastifyInstance) {
   const limiteEstricto = { config: { rateLimit: { max: 10, timeWindow: '10 minutes' } } };
 
-  app.post('/api/auth/registro', limiteEstricto, async (req, reply) => {
+  app.post('/api/auth/registro', { ...limiteEstricto, preHandler: captcha('registro') }, async (req, reply) => {
     const d = validar(z.object({
       nombre: texto(120, 3), correo, telefono, barrio: texto(120).default(''), password,
       aceptaDatos: z.literal(true, { errorMap: () => ({ message: 'Debes autorizar el tratamiento de datos personales' }) }),
@@ -39,7 +40,7 @@ export default async function rutasAuth(app: FastifyInstance) {
     return reply.code(201).send(publico(u));
   });
 
-  app.post('/api/auth/login', limiteEstricto, async (req, reply) => {
+  app.post('/api/auth/login', { ...limiteEstricto, preHandler: captcha('login') }, async (req, reply) => {
     const d = validar(z.object({ correo, password: z.string().min(1).max(128) }), req.body);
     const [fila] = await q<Usuario & { password_hash: string }>(
       'SELECT id, nombre, correo, telefono, barrio, rol, lugar_id, password_hash FROM usuarios WHERE lower(correo) = $1 AND activo', [d.correo]);

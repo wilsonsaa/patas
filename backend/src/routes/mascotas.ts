@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { q } from '../db.js';
 import { ErrorHttp, auditar, exigir, usuarioDe } from '../auth.js';
 import { foto, telefono, texto, uuid, validar } from '../validar.js';
+import { captcha } from '../recaptcha.js';
 
 const MUNICIPIO = 'Mosquera, Cundinamarca';
 export const nombrePublico = (l: { tipo: string; codigo: string; nombre: string }) =>
@@ -112,7 +113,7 @@ export default async function rutasMascotas(app: FastifyInstance) {
   });
 
   // ---------- Hogares de paso ----------
-  app.post('/api/hogares', async (req, reply) => {
+  app.post('/api/hogares', { preHandler: captcha('hogar') }, async (req, reply) => {
     const u = await exigir(req);
     if (u.lugar_id) throw new ErrorHttp(409, 'Tu cuenta ya tiene un hogar o refugio asociado.');
     const pend = await q("SELECT 1 FROM lugares WHERE usuario_id=$1 AND estado='pendiente'", [u.id]);

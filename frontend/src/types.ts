@@ -112,5 +112,5 @@ export interface UsuarioActivo {
   nombreOrganizacion?: string;
 }
 
-export type Vista = 'inicio' | 'mascotas' | 'hogares' | 'solicitudes' | 'refugios_personas' | 'mapa' | 'servicios' | 'panel';
+export type Vista = 'inicio' | 'mascotas' | 'hogares' | 'solicitudes' | 'refugios_personas' | 'mapa' | 'servicios' | 'panel' | 'privacidad' | 'terminos';
 

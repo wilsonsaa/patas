@@ -4,6 +4,7 @@ import { q, radicado, tx } from '../db.js';
 import { ErrorHttp, auditar, exigir } from '../auth.js';
 import { correo, documento, fechaOpc, fotoOpc, telefono, texto, tipoDoc, uuid, validar } from '../validar.js';
 import { nombrePublico } from './mascotas.js';
+import { captcha } from '../recaptcha.js';
 
 export const RAZAS_MANEJO_ESPECIAL = [
   'American Staffordshire Terrier', 'Bullmastiff', 'Dóberman', 'Dogo Argentino', 'Dogo de Burdeos',
@@ -54,7 +55,7 @@ export default async function rutasTramites(app: FastifyInstance) {
       .map((s) => ({ ...aSolicitud(s, true), notasGestor: '' })); // las notas internas no se muestran al solicitante
   });
 
-  app.post('/api/solicitudes', limiteFormulario, async (req, reply) => {
+  app.post('/api/solicitudes', { ...limiteFormulario, preHandler: captcha('adopcion') }, async (req, reply) => {
     const u = await exigir(req);
     const d = validar(z.object({
       mascotaId: uuid, nombre: texto(120, 3), cedula: documento, telefono, correo, barrio: texto(120, 2),
@@ -138,7 +139,7 @@ export default async function rutasTramites(app: FastifyInstance) {
     aceptaDatos: si('Debes autorizar el tratamiento de datos personales'),
   });
 
-  app.post('/api/mascotas-propias', limiteFormulario, async (req, reply) => {
+  app.post('/api/mascotas-propias', { ...limiteFormulario, preHandler: captcha('mascota_propia') }, async (req, reply) => {
     const u = await exigir(req);
     const d = validar(cuerpoPropia, req.body);
     const [r] = await q(
@@ -165,7 +166,7 @@ export default async function rutasTramites(app: FastifyInstance) {
   // ---------- Razas de manejo especial ----------
   app.get('/api/manejo-especial/razas', async () => RAZAS_MANEJO_ESPECIAL);
 
-  app.post('/api/manejo-especial', limiteFormulario, async (req, reply) => {
+  app.post('/api/manejo-especial', { ...limiteFormulario, preHandler: captcha('manejo_especial') }, async (req, reply) => {
     const u = await exigir(req);
     const d = validar(z.object({
       ...propietario, propMayorEdad: si('El registro debe hacerlo una persona mayor de edad'),
@@ -208,7 +209,7 @@ export default async function rutasTramites(app: FastifyInstance) {
   });
 
   // ---------- Quiero donar (formulario público, sin manejo de dinero) ----------
-  app.post('/api/donaciones', { config: { rateLimit: { max: 5, timeWindow: '10 minutes' } } }, async (req, reply) => {
+  app.post('/api/donaciones', { config: { rateLimit: { max: 5, timeWindow: '10 minutes' } }, preHandler: captcha('donacion') }, async (req, reply) => {
     const d = validar(z.object({
       nombre: texto(120, 3), telefono, correo: z.union([z.literal(''), correo]).default(''),
       tipo: z.enum(['Alimento', 'Medicamentos e insumos', 'Cobijas y accesorios', 'Dinero', 'Tiempo o voluntariado', 'Otro']),

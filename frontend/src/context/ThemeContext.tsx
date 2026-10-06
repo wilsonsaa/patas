@@ -1,6 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Pet, RefugioHogar, SolicitudAdopcion, AdopcionExitosa, UsuarioActivo, Vista } from '../types';
-import { api } from '../api';
+import { api, iniciarRecaptcha } from '../api';
+
+// Cada sección tiene su dirección (#/mascotas, #/privacidad…): se puede compartir y funciona el botón Atrás.
+const VISTAS: Vista[] = ['inicio', 'mascotas', 'hogares', 'solicitudes', 'refugios_personas', 'mapa', 'servicios', 'panel', 'privacidad', 'terminos'];
+const RUTA: Partial<Record<Vista, string>> = { refugios_personas: 'refugios' };
+const vistaDeHash = (): Vista => {
+  const h = location.hash.replace(/^#\/?/, '');
+  return VISTAS.find((v) => (RUTA[v] ?? v) === h) ?? 'inicio';
+};
 
 interface ThemeConfig {
   nombre: string;
@@ -96,7 +104,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [modalMascotaPropia, setModalMascotaPropia] = useState(false);
   const [modalManejoEspecial, setModalManejoEspecial] = useState(false);
   const [modalDonarAbierto, setModalDonarAbierto] = useState(false);
-  const [vistaActiva, setVistaActiva] = useState<Vista>('inicio');
+  const [vistaActiva, setVistaInterna] = useState<Vista>(vistaDeHash);
+  const setVistaActiva = useCallback((vista: Vista) => {
+    const destino = vista === 'inicio' ? '#/' : `#/${RUTA[vista] ?? vista}`;
+    if (location.hash !== destino) history.pushState(null, '', destino);
+    setVistaInterna(vista);
+    window.scrollTo({ top: 0 });
+  }, []);
+  useEffect(() => {
+    const alCambiar = () => setVistaInterna(vistaDeHash());
+    window.addEventListener('popstate', alCambiar);
+    window.addEventListener('hashchange', alCambiar);
+    iniciarRecaptcha();
+    return () => { window.removeEventListener('popstate', alCambiar); window.removeEventListener('hashchange', alCambiar); };
+  }, []);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const autenticado = usuarioActivo.rol !== 'visitante';

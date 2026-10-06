@@ -80,7 +80,7 @@ export default function ModalRegistroAdoptante() {
         <Campo etiqueta="Contraseña *" ayuda={modo === 'crear' ? 'Mínimo 10 caracteres.' : undefined}>
           <input required type="password" minLength={modo === 'crear' ? 10 : 1} maxLength={128} value={f.password} onChange={set('password')} className={claseInput} autoComplete={modo === 'crear' ? 'new-password' : 'current-password'} />
         </Campo>
-        {modo === 'crear' && <Casilla checked={acepta} onChange={setAcepta}><AvisoDatos /></Casilla>}
+        {modo === 'crear' && <Casilla checked={acepta} onChange={setAcepta}><AvisoDatos /> Acepto también los <a href="#/terminos" target="_blank" rel="noopener" className="font-bold text-emerald-700 underline">términos de uso</a>.</Casilla>}
         <BotonesFormulario onCancelar={cerrar} texto={modo === 'entrar' ? 'Entrar' : 'Crear cuenta'} enviando={enviando} icono={modo === 'entrar' ? <LogIn className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />} />
       </form>
     </Modal>

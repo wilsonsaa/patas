@@ -67,8 +67,10 @@ export function Casilla({ checked, onChange, children }: { checked: boolean; onC
 export function AvisoDatos() {
   return (
     <>
-      Autorizo el tratamiento de mis datos personales conforme a la <strong>Ley 1581 de 2012</strong>, únicamente para
-      gestionar este trámite ante la Dirección de Protección Animal de Mosquera.
+      He leído la{' '}
+      <a href="#/privacidad" target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="font-bold text-emerald-700 underline">política de privacidad</a>{' '}
+      y autorizo el tratamiento de mis datos personales conforme a la <strong>Ley 1581 de 2012</strong>, únicamente para gestionar este trámite ante la
+      Dirección de Protección Animal de Mosquera.
     </>
   );
 }

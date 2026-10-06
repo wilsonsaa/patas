@@ -69,6 +69,9 @@ El rol `refugio_admin` se asigna por base de datos:
   consulta queda en la tabla `auditoria`.
 - Sesión en cookie `HttpOnly` + `SameSite=Lax` (JWT de 8 h). Contraseñas con scrypt. El rol se lee de la base en cada petición.
 - Anti-CSRF por cabecera propia y sin CORS; límite de peticiones global y más estricto en acceso y formularios.
+- **reCAPTCHA v3** en el acceso y en todos los formularios: el servidor verifica cada envío con Google (acción y
+  puntaje mínimo 0.5). Se activa al definir `RECAPTCHA_SECRET_KEY`; el contenedor necesita salida a internet hacia
+  `www.google.com`. Variables opcionales: `RECAPTCHA_SITE_KEY`, `RECAPTCHA_MIN_SCORE`.
 - Toda entrada se valida con esquemas (zod) y todo SQL es parametrizado.
 - Fotos: solo JPG/PNG/WebP verificados por contenido, máximo 5 MB, nombre aleatorio.
 - Content-Security-Policy y cabeceras de seguridad desde la API; el contenedor corre sin root, con sistema de archivos
@@ -77,6 +80,9 @@ El rol `refugio_admin` se asigna por base de datos:
   nombre de quien adoptó.
 
 ### Antes de salir a producción
+
+0. Completar los datos del responsable del tratamiento en `frontend/src/legal.ts` y hacer validar por jurídica la
+   política de privacidad y los términos (`frontend/src/components/Legal.tsx`).
 
 1. Servir por **HTTPS** (Ingress o proxy) y poner `COOKIE_SECURE=true` y `TRUST_PROXY=1`.
 2. `SEED_DEMO=false` y reemplazar los datos del refugio (están en `backend/src/seed.ts`) y las líneas de atención

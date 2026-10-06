@@ -4,8 +4,44 @@ export class ErrorApi extends Error {
   constructor(public status: number, mensaje: string) { super(mensaje); }
 }
 
+// ---------- reCAPTCHA v3 ----------
+// Formularios protegidos y el nombre de acción que el servidor espera para cada uno.
+const ACCIONES: Record<string, string> = {
+  '/auth/registro': 'registro', '/auth/login': 'login', '/solicitudes': 'adopcion', '/mascotas-propias': 'mascota_propia',
+  '/manejo-especial': 'manejo_especial', '/donaciones': 'donacion', '/hogares': 'hogar',
+};
+declare global {
+  interface Window { grecaptcha?: { ready(cb: () => void): void; execute(clave: string, o: { action: string }): Promise<string> } }
+}
+let claveSitio: Promise<string> | null = null;
+
+/** Carga el script de Google una sola vez (muestra la insignia "protegido por reCAPTCHA"). */
+export function iniciarRecaptcha(): Promise<string> {
+  claveSitio ??= fetch('/api/config').then((r) => r.json()).then(({ recaptchaSiteKey }) => new Promise<string>((resolver) => {
+    if (!recaptchaSiteKey) return resolver('');
+    const s = document.createElement('script');
+    s.src = `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(recaptchaSiteKey)}&hl=es`;
+    s.async = true;
+    s.onload = () => resolver(recaptchaSiteKey);
+    s.onerror = () => resolver('');
+    document.head.appendChild(s);
+  })).catch(() => '');
+  return claveSitio;
+}
+
+async function tokenRecaptcha(accion: string): Promise<string> {
+  const clave = await iniciarRecaptcha();
+  if (!clave || !window.grecaptcha) return '';
+  try {
+    await new Promise<void>((ok) => window.grecaptcha!.ready(ok));
+    return await window.grecaptcha.execute(clave, { action: accion });
+  } catch { return ''; }
+}
+
 async function pedir<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
   const esArchivo = cuerpo instanceof FormData;
+  const accion = metodo === 'POST' ? ACCIONES[ruta] : undefined;
+  const token = accion ? await tokenRecaptcha(accion) : '';
   let r: Response;
   try {
     r = await fetch(`/api${ruta}`, {
@@ -13,6 +49,7 @@ async function pedir<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise
       credentials: 'same-origin',
       headers: {
         ...(metodo !== 'GET' ? { 'X-Patas': '1' } : {}),
+        ...(token ? { 'X-Recaptcha-Token': token } : {}),
         ...(cuerpo !== undefined && !esArchivo ? { 'Content-Type': 'application/json' } : {}),
       },
       body: cuerpo === undefined ? undefined : esArchivo ? cuerpo : JSON.stringify(cuerpo),

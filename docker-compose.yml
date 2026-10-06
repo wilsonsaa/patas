@@ -17,6 +17,7 @@ services:
       SEED_DEMO: ${SEED_DEMO:-false}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       JWT_SECRET: ${JWT_SECRET:-}        # vacío = se genera solo y se guarda en el volumen
+      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:-}   # clave secreta de reCAPTCHA v3
       TRUST_PROXY: ${TRUST_PROXY:-0}     # 1 si hay un proxy o Ingress delante
     volumes:
       - datos:/data                      # base de datos, fotos y secreto de sesión

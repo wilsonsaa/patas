@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { PawPrint, Heart, Mail, Phone, MapPin } from 'lucide-react';
+import { PawPrint, Heart, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react';
 import LogosAliados from './LogosAliados';
 
 export default function Footer() {
@@ -30,7 +30,7 @@ export default function Footer() {
         <div className="mb-10">
           <div className="text-center mb-3">
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-              Alianzas Institucionales & Respaldo Oficial en Mosquera
+              Con el respaldo de
             </span>
           </div>
           <LogosAliados variant="footer" />
@@ -55,7 +55,7 @@ export default function Footer() {
               Plataforma de Acogida Temporal y Adopción Segura
             </p>
             <p className="text-xs sm:text-sm text-gray-500 max-w-md leading-relaxed">
-              Iniciativa municipal de Mosquera para la acogida temporal, adopción responsable de perros y gatos, gestión de hogares de paso voluntarios y seguimiento transparente de solicitudes con la Alcaldía de Mosquera y aliados estratégicos.
+              Adopción responsable, hogares de paso y trámites de tenencia responsable del municipio de Mosquera.
             </p>
             <div className="flex items-center gap-4 text-xs font-semibold text-emerald-800 pt-1">
               <span className="flex items-center gap-1">
@@ -78,7 +78,7 @@ export default function Footer() {
                   onClick={() => { setVistaActiva('mascotas'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className="hover:text-emerald-700 transition-colors"
                 >
-                  🐾 Ver Mascotas en Mosquera
+                  🐾 Mascotas en adopción
                 </button>
               </li>
               <li>
@@ -112,7 +112,7 @@ export default function Footer() {
                   onClick={() => { setVistaActiva('refugios_personas'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className="hover:text-emerald-700 transition-colors"
                 >
-                  🏢 Refugios y Adoptantes
+                  🏢 Refugios
                 </button>
               </li>
               <li>
@@ -120,7 +120,7 @@ export default function Footer() {
                   onClick={() => { setVistaActiva('mapa'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                   className="hover:text-emerald-700 transition-colors"
                 >
-                  🗺️ Mapa de Puntos en Mosquera
+                  🗺️ Mapa de refugios
                 </button>
               </li>
             </ul>
@@ -147,72 +147,24 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Institutional & Credits Row */}
-        <div className="flex flex-col sm:flex-row items-center justify-between w-full gap-4 text-xs pt-4">
-          {/* Firma Harry Salamanca */}
-          <div className="flex items-center gap-2">
-            <img
-              src="/logos/logo-harry-salamanca.png"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.src.endsWith('/logos/logoh.png')) {
-                  target.src = '/logos/logoh.png';
-                }
-              }}
-              alt="Harry Salamanca Concejal 2024 - 2027"
-              className="h-8 w-auto object-contain"
-              referrerPolicy="no-referrer"
-            />
-            <span className="text-[11px] text-gray-600 font-medium">
-              Concejal de Mosquera 2024 - 2027
-            </span>
-          </div>
-
-          {/* Centro: Hostaddrees y Derechos */}
-          <div className="flex flex-col items-center justify-center text-center">
-            <a
-              href="https://hostaddrees.com"
-              target="_blank"
-              rel="noopener"
-              className="group flex items-center gap-1.5 text-xs text-gray-600 font-medium py-1"
-            >
-              <span>Desarrollado con <span role="img" aria-label="amor">❤️</span> por</span>
-              <img src="/logos/logo-hostaddrees.png" alt="" className="h-6 w-auto object-contain" />
-              <span className="font-bold text-gray-900 underline decoration-emerald-500 decoration-2 underline-offset-2 group-hover:text-emerald-700">HostAddrees</span>
-            </a>
-            <p className="text-[9px] uppercase tracking-widest text-gray-400 mt-1">
-              &copy; {new Date().getFullYear()} PATAS (Plataforma de Acogida Temporal y Adopción Segura) • Mosquera, Cundinamarca
-            </p>
-          </div>
-
-          {/* Derecha: Alcaldía y Gobernación */}
-          <div className="flex items-center gap-3">
-            <img
-              src="/logos/logo-alcaldia.png"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.src.endsWith('/logos/alcaldia.png')) {
-                  target.src = '/logos/alcaldia.png';
-                }
-              }}
-              alt="Alcaldía de Mosquera"
-              className="h-9 w-auto object-contain"
-              referrerPolicy="no-referrer"
-            />
-            <img
-              src="/logos/logo-gobernacion.png"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.src.endsWith('/logos/logo-gober.png')) {
-                  target.src = '/logos/logo-gober.png';
-                }
-              }}
-              alt="Gobernación de Cundinamarca"
-              className="h-6 w-auto object-contain rounded-xs"
-              referrerPolicy="no-referrer"
-            />
-          </div>
+        {/* Legales, protección y crédito */}
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-4 text-xs pt-2">
+          <nav aria-label="Información legal" className="flex flex-wrap justify-center gap-x-5 gap-y-2 font-semibold text-gray-600">
+            <button onClick={() => setVistaActiva('privacidad')} className="hover:text-emerald-700 cursor-pointer">Política de privacidad</button>
+            <button onClick={() => setVistaActiva('terminos')} className="hover:text-emerald-700 cursor-pointer">Términos de uso</button>
+            <span className="flex items-center gap-1 text-gray-500 font-medium"><ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Sitio protegido por reCAPTCHA</span>
+          </nav>
+          <a href="https://hostaddrees.com" target="_blank" rel="noopener" className="group flex items-center gap-1.5 text-gray-600 font-medium py-1">
+            <span>Desarrollado con <span role="img" aria-label="amor">❤️</span> por</span>
+            <img src="/logos/logo-hostaddrees.png" alt="" className="h-6 w-auto object-contain" />
+            <span className="font-bold text-gray-900 underline decoration-emerald-500 decoration-2 underline-offset-2 group-hover:text-emerald-700">HostAddrees</span>
+          </a>
         </div>
+        <p className="text-[10px] text-gray-400 text-center lg:text-left mt-3 leading-relaxed">
+          &copy; {new Date().getFullYear()} PATAS · Mosquera, Cundinamarca. Este sitio está protegido por reCAPTCHA y se aplican la{' '}
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline">Política de Privacidad</a> y las{' '}
+          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline">Condiciones del Servicio</a> de Google.
+        </p>
       </div>
     </footer>
   );

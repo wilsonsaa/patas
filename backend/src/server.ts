@@ -9,6 +9,7 @@ import { config } from './config.js';
 import { migrar, pool, q } from './db.js';
 import { ErrorHttp } from './auth.js';
 import { sembrar } from './seed.js';
+import { recaptchaActivo } from './recaptcha.js';
 import rutasAuth from './routes/auth.js';
 import rutasMascotas from './routes/mascotas.js';
 import rutasTramites from './routes/tramites.js';
@@ -28,11 +29,13 @@ await app.register(helmet, {
   contentSecurityPolicy: {
     useDefaults: false,
     directives: {
-      defaultSrc: ["'self'"], scriptSrc: ["'self'"],
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", 'https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/'],
+      frameSrc: ['https://www.google.com/recaptcha/', 'https://recaptcha.google.com/recaptcha/'],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-      connectSrc: ["'self'"], objectSrc: ["'none'"], baseUri: ["'self'"], formAction: ["'self'"], frameAncestors: ["'none'"],
+      connectSrc: ["'self'", 'https://www.google.com/recaptcha/'], objectSrc: ["'none'"], baseUri: ["'self'"], formAction: ["'self'"], frameAncestors: ["'none'"],
     },
   },
   // HSTS solo tiene sentido cuando el sitio ya se sirve por HTTPS
@@ -69,6 +72,8 @@ app.setErrorHandler((err: any, req, reply) => {
 });
 
 app.get('/api/salud', async () => { await q('SELECT 1'); return { ok: true }; });
+// Configuración pública que necesita el navegador (la clave del sitio de reCAPTCHA no es secreta)
+app.get('/api/config', async () => ({ recaptchaSiteKey: recaptchaActivo() ? config.recaptchaSiteKey : '' }));
 await app.register(rutasAuth);
 await app.register(rutasMascotas);
 await app.register(rutasTramites);
@@ -91,6 +96,7 @@ if (config.staticDir) {
   });
 }
 
+if (!recaptchaActivo()) app.log.warn('reCAPTCHA DESACTIVADO: define RECAPTCHA_SECRET_KEY para proteger los formularios.');
 await migrar();
 await sembrar(app.log);
 await app.listen({ host: '0.0.0.0', port: config.puerto });

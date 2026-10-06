@@ -75,3 +75,9 @@ button, a, label { touch-action: manipulation; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Insignia de reCAPTCHA: visible siempre; en celular sube para no tapar la barra inferior */
+.grecaptcha-badge { z-index: 30; }
+@media (max-width: 639px) {
+  .grecaptcha-badge { bottom: 76px !important; }
+}

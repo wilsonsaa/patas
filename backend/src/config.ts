@@ -22,6 +22,11 @@ export const config = {
   uploadDir: process.env.UPLOAD_DIR ?? './uploads',
   adminCorreo: process.env.ADMIN_EMAIL ?? '',
   adminPassword: process.env.ADMIN_PASSWORD ?? '',
+  // reCAPTCHA v3. La clave del sitio es pública; la secreta SOLO va en la variable de entorno.
+  recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY ?? '6LfL6eEtAAAAAG908hiSX5ypoPwreHIw_EJAveqE',
+  recaptchaSecret: process.env.RECAPTCHA_SECRET_KEY ?? '',
+  recaptchaMinimo: Number(process.env.RECAPTCHA_MIN_SCORE ?? 0.5),
+  recaptchaUrl: process.env.RECAPTCHA_VERIFY_URL ?? 'https://www.google.com/recaptcha/api/siteverify',
   seedDemo: (process.env.SEED_DEMO ?? 'false') === 'true',
   // número de proxies de confianza delante del contenedor (0 = ninguno)
   trustProxy: Number(process.env.TRUST_PROXY ?? 0),
