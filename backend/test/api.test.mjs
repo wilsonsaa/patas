@@ -178,3 +178,56 @@ async function cookieDeAna() {
     body: JSON.stringify({ correo: registro('ana').correo, password: 'ClaveSegura2026' }) });
   return r.headers.get('set-cookie').split(';')[0];
 }
+
+// ---------- Versión 1.3 ----------
+test('donaciones: ya no se acepta dinero', async () => {
+  const base = { nombre: 'Carlos Ruiz', telefono: '3001112233', descripcion: 'Aporte', aceptaDatos: true };
+  assert.equal((await anon('POST', '/api/donaciones', { ...base, tipo: 'Dinero' })).status, 400);
+  assert.equal((await anon('POST', '/api/donaciones', { ...base, tipo: 'Elementos de aseo' })).status, 201);
+});
+
+test('hallazgo: se guarda la coordenada, lo público solo ve la referencia', async (t) => {
+  if (!mascotaHogar) return t.skip('depende del admin');
+  // un ciudadano no puede georreferenciar
+  assert.equal((await ana('PUT', `/api/mascotas/${mascotaHogar.id}/hallazgo`, { lat: 4.70, lng: -74.23 })).status, 403);
+  // fuera de la zona de Mosquera
+  assert.equal((await hogar('PUT', `/api/mascotas/${mascotaHogar.id}/hallazgo`, { lat: 6.25, lng: -75.56 })).status, 400);
+  assert.equal((await hogar('PUT', `/api/mascotas/${mascotaHogar.id}/hallazgo`, { lat: 4.7051, lng: -74.2299, fecha: '2026-10-01', referencia: 'Parque principal' })).status, 200);
+  const publica = (await anon('GET', '/api/mascotas')).datos.find((m) => m.id === mascotaHogar.id);
+  assert.equal(publica.hallazgoReferencia, 'Parque principal');
+  assert.equal(JSON.stringify(publica).includes('74.2299'), false, 'la coordenada no se publica');
+  const mapa = (await admin('GET', '/api/gestion/hallazgos')).datos;
+  assert.ok(mapa.some((p) => p.id === mascotaHogar.id && p.lat === 4.7051));
+  assert.equal((await ana('GET', '/api/gestion/hallazgos')).status, 403);
+});
+
+test('seguimiento de adopciones', async (t) => {
+  if (!mascotaHogar) return t.skip('depende del admin');
+  const lista = (await admin('GET', '/api/gestion/adopciones')).datos;
+  const a = lista.find((x) => x.mascota_nombre === 'Nube');
+  assert.ok(a, 'la adopción aprobada aparece en el panel');
+  assert.ok(a.proxima_visita, 'queda programada una primera visita');
+  assert.ok((await hogar('GET', '/api/gestion/adopciones')).datos.some((x) => x.id === a.id), 'el hogar ve sus adopciones');
+  assert.equal((await ana('GET', '/api/gestion/adopciones')).status, 403);
+  const r = await hogar('POST', `/api/gestion/adopciones/${a.id}/seguimientos`, { fecha: new Date().toISOString().slice(0, 10), tipo: 'Visita', estado: 'Excelente', notas: 'Se adaptó muy bien', proximaVisita: '2099-01-01' });
+  assert.equal(r.status, 201);
+  const hist = (await admin('GET', `/api/gestion/adopciones/${a.id}/seguimientos`)).datos;
+  assert.equal(hist[0].notas, 'Se adaptó muy bien');
+  assert.equal((await admin('GET', '/api/gestion/adopciones')).datos.find((x) => x.id === a.id).seguimiento, 'Excelente');
+});
+
+test('recuperación de contraseña por enlace del administrador', async (t) => {
+  if (!ADMIN.correo) return t.skip('sin admin');
+  const pedro = cliente();
+  const reg = await pedro('POST', '/api/auth/registro', registro('pedro'));
+  // respuesta genérica, exista o no la cuenta
+  const r1 = await anon('POST', '/api/auth/olvide', { correo: 'no-existe@prueba.test' });
+  assert.ok([200, 503].includes(r1.status));
+  assert.equal((await ana('POST', `/api/admin/usuarios/${reg.datos.id}/enlace`)).status, 403);
+  const { token } = (await admin('POST', `/api/admin/usuarios/${reg.datos.id}/enlace`)).datos;
+  assert.equal((await anon('POST', '/api/auth/restablecer', { token, password: 'corta' })).status, 400);
+  assert.equal((await anon('POST', '/api/auth/restablecer', { token, password: 'NuevaClave2026' })).status, 200);
+  assert.equal((await anon('POST', '/api/auth/restablecer', { token, password: 'OtraClave2026x' })).status, 400, 'el enlace es de un solo uso');
+  assert.equal((await pedro('GET', '/api/auth/yo')).datos, null, 'la sesión anterior se cerró');
+  assert.equal((await cliente()('POST', '/api/auth/login', { correo: registro('pedro').correo, password: 'NuevaClave2026' })).status, 200);
+});

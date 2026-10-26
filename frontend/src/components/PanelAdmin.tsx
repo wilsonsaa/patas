@@ -1,23 +1,28 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Home, PawPrint, ShieldAlert, HandHeart, Lock, LayoutDashboard } from 'lucide-react';
+import { Home, PawPrint, ShieldAlert, HandHeart, Lock, LayoutDashboard, HeartHandshake, MapPinned, Users } from 'lucide-react';
+import PanelAdopciones from './PanelAdopciones';
+import PanelHallazgos from './PanelHallazgos';
+import PanelUsuarios from './PanelUsuarios';
 import { api } from '../api';
 
 type Fila = Record<string, any>;
-type Pestana = 'hogares' | 'mascotas' | 'especial' | 'donaciones';
+type Tabla = 'hogares' | 'mascotas' | 'especial' | 'donaciones';
+type Pestana = Tabla | 'adopciones' | 'hallazgos' | 'usuarios';
 const fecha = (f?: string) => (f ? new Date(f).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 const claseSelect = 'text-xs font-bold p-1.5 rounded-lg border border-gray-300 bg-white';
 
 /** Panel de la Dirección de Protección Animal. Aquí sí se ven los datos reservados. */
 export default function PanelAdmin() {
   const { esAdmin, usuarioActivo, addToast, recargar } = useTheme();
-  const puedeVer = esAdmin || usuarioActivo.rol === 'refugio_admin';
-  const [pestana, setPestana] = useState<Pestana>(esAdmin ? 'hogares' : 'mascotas');
-  const [datos, setDatos] = useState<Record<Pestana, Fila[]>>({ hogares: [], mascotas: [], especial: [], donaciones: [] });
+  const esHogar = usuarioActivo.rol === 'hogar_paso';
+  const puedeVer = esAdmin || usuarioActivo.rol === 'refugio_admin' || esHogar;
+  const [pestana, setPestana] = useState<Pestana>('adopciones');
+  const [datos, setDatos] = useState<Record<Tabla, Fila[]>>({ hogares: [], mascotas: [], especial: [], donaciones: [] });
   const [cargando, setCargando] = useState(true);
 
   const cargar = useCallback(async () => {
-    if (!puedeVer) return;
+    if (!puedeVer || esHogar) { setCargando(false); return; }
     setCargando(true);
     try {
       const [hogares, mascotas, especial, donaciones] = await Promise.all([
@@ -29,7 +34,7 @@ export default function PanelAdmin() {
       setDatos({ hogares, mascotas, especial, donaciones });
     } catch (e) { addToast('error', 'No se pudo cargar el panel', e instanceof Error ? e.message : ''); }
     finally { setCargando(false); }
-  }, [puedeVer, esAdmin, addToast]);
+  }, [puedeVer, esAdmin, esHogar, addToast]);
   useEffect(() => { cargar(); }, [cargar]);
 
   if (!puedeVer) return <p className="max-w-3xl mx-auto p-10 text-center text-sm text-gray-600">Esta sección es solo para el equipo de la Dirección de Protección Animal.</p>;
@@ -40,10 +45,13 @@ export default function PanelAdmin() {
   };
 
   const pestanas = ([
+    ['adopciones', 'Seguimiento de adopciones', HeartHandshake, 0, true],
+    ['hallazgos', 'Mapa de hallazgos', MapPinned, 0, true],
     ['hogares', 'Hogares de paso', Home, datos.hogares.filter((h) => h.estado === 'pendiente').length, esAdmin],
-    ['mascotas', 'Mascotas registradas', PawPrint, 0, true],
+    ['mascotas', 'Mascotas registradas', PawPrint, 0, !esHogar],
     ['especial', 'Manejo especial', ShieldAlert, datos.especial.filter((r) => r.estado === 'Radicado').length, esAdmin],
-    ['donaciones', 'Donaciones', HandHeart, datos.donaciones.filter((d) => d.estado === 'Nueva').length, true],
+    ['donaciones', 'Donaciones', HandHeart, datos.donaciones.filter((d) => d.estado === 'Nueva').length, !esHogar],
+    ['usuarios', 'Usuarios', Users, 0, esAdmin],
   ] as const).filter((p) => p[4]);
 
   return (
@@ -52,7 +60,7 @@ export default function PanelAdmin() {
         <div className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60 mb-2">
           <LayoutDashboard className="w-3.5 h-3.5" /> Panel institucional
         </div>
-        <h2 className="text-3xl sm:text-4xl font-black text-gray-900 font-heading tracking-tight">Dirección de Protección Animal</h2>
+        <h2 className="text-3xl sm:text-4xl font-black text-gray-900 font-heading tracking-tight">{esHogar ? usuarioActivo.nombreOrganizacion ?? 'Mi hogar de paso' : 'Dirección de Protección Animal'}</h2>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-5" role="tablist">
@@ -71,15 +79,19 @@ export default function PanelAdmin() {
         </p>
       )}
 
+      {pestana === 'adopciones' && <PanelAdopciones />}
+      {pestana === 'hallazgos' && <PanelHallazgos />}
+      {pestana === 'usuarios' && <PanelUsuarios />}
+      {pestana !== 'adopciones' && pestana !== 'hallazgos' && pestana !== 'usuarios' && (
       <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-x-auto">
-        {cargando ? <p className="p-8 text-sm text-gray-500">Cargando…</p> : datos[pestana].length === 0 ? <p className="p-8 text-sm text-gray-500">No hay registros todavía.</p> : (
+        {cargando ? <p className="p-8 text-sm text-gray-500">Cargando…</p> : datos[pestana as Tabla].length === 0 ? <p className="p-8 text-sm text-gray-500">No hay registros todavía.</p> : (
           <table className="w-full text-left text-xs">
             <thead className="bg-gray-50 border-b border-gray-200 text-gray-600 uppercase font-bold text-[10px] tracking-wider">
               <tr>
                 {{ hogares: ['Código', 'Responsable y contacto', 'Dirección (reservada)', 'Cupos', 'Inscrito', 'Estado'],
                   mascotas: ['Radicado', 'Mascota', 'Propietario', 'Ubicación', 'Antirrábica', 'Esterilizado'],
                   especial: ['Radicado', 'Ejemplar', 'Propietario', 'Residencia', 'Póliza', 'Estado'],
-                  donaciones: ['Radicado', 'Donante', 'Tipo', 'Descripción', 'Fecha', 'Estado'] }[pestana].map((c) => <th key={c} className="py-3 px-4 whitespace-nowrap">{c}</th>)}
+                  donaciones: ['Radicado', 'Donante', 'Tipo', 'Descripción', 'Fecha', 'Estado'] }[pestana as Tabla].map((c) => <th key={c} className="py-3 px-4 whitespace-nowrap">{c}</th>)}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 align-top">
@@ -139,6 +151,7 @@ export default function PanelAdmin() {
           </table>
         )}
       </div>
+      )}
     </section>
   );
 }

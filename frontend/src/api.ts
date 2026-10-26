@@ -9,15 +9,24 @@ export class ErrorApi extends Error {
 const ACCIONES: Record<string, string> = {
   '/auth/registro': 'registro', '/auth/login': 'login', '/solicitudes': 'adopcion', '/mascotas-propias': 'mascota_propia',
   '/manejo-especial': 'manejo_especial', '/donaciones': 'donacion', '/hogares': 'hogar',
+  '/auth/olvide': 'recuperar', '/auth/olvide-correo': 'recuperar',
 };
 declare global {
   interface Window { grecaptcha?: { ready(cb: () => void): void; execute(clave: string, o: { action: string }): Promise<string> } }
+}
+export interface ConfigPublica { recaptchaSiteKey: string; whatsappBienestar: string; recuperacionPorCorreo: boolean }
+let configPublica: Promise<ConfigPublica> | null = null;
+/** Configuración pública del servidor (se pide una sola vez). */
+export function obtenerConfig(): Promise<ConfigPublica> {
+  configPublica ??= fetch('/api/config').then((r) => r.json())
+    .catch(() => ({ recaptchaSiteKey: '', whatsappBienestar: '', recuperacionPorCorreo: false }));
+  return configPublica;
 }
 let claveSitio: Promise<string> | null = null;
 
 /** Carga el script de Google una sola vez (muestra la insignia "protegido por reCAPTCHA"). */
 export function iniciarRecaptcha(): Promise<string> {
-  claveSitio ??= fetch('/api/config').then((r) => r.json()).then(({ recaptchaSiteKey }) => new Promise<string>((resolver) => {
+  claveSitio ??= obtenerConfig().then(({ recaptchaSiteKey }) => new Promise<string>((resolver) => {
     if (!recaptchaSiteKey) return resolver('');
     const s = document.createElement('script');
     s.src = `https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(recaptchaSiteKey)}&hl=es`;
@@ -66,6 +75,7 @@ export const api = {
   get: <T>(ruta: string) => pedir<T>('GET', ruta),
   post: <T>(ruta: string, cuerpo?: unknown) => pedir<T>('POST', ruta, cuerpo ?? {}),
   patch: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PATCH', ruta, cuerpo),
+  put: <T>(ruta: string, cuerpo: unknown) => pedir<T>('PUT', ruta, cuerpo),
   del: <T>(ruta: string) => pedir<T>('DELETE', ruta),
   async subirFoto(archivo: File): Promise<string> {
     if (archivo.size > 5 * 1024 * 1024) throw new ErrorApi(413, 'La imagen supera el límite de 5 MB.');

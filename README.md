@@ -46,7 +46,13 @@ PersistentVolumeClaim en `/data`); no se puede escalar horizontalmente.
 - **Hogares de paso**: inscripción con visita de verificación. Públicamente solo existe un código (`HP-0001`).
 - **Registro de mascota propia**: datos del propietario, de la mascota y de vacunación.
 - **Caninos de manejo especial**: registro según la Ley 1801 de 2016 (arts. 126 a 128), con póliza y vacunas.
-- **Quiero donar**: formulario de intención; la plataforma no recibe dinero.
+- **Quiero donar**: solo en especie y voluntariado; la plataforma no recibe dinero.
+- **Seguimiento de adopciones** (Panel): historial de visitas, llamadas y reportes, con la próxima visita programada.
+- **Lugar de hallazgo**: administración, refugios y hogares de paso marcan en un mapa dónde se encontró cada animal. La
+  coordenada es interna (Panel > Mapa de hallazgos); en la hoja de vida solo se publica la referencia escrita.
+- **Recuperar contraseña o usuario**: por correo si hay SMTP configurado; si no, el administrador genera un enlace de un
+  solo uso en Panel > Usuarios y lo envía por WhatsApp.
+- **WhatsApp de la línea de bienestar animal**: botón flotante y en el pie, con `WHATSAPP_BIENESTAR`.
 - **Panel institucional**: verificación de hogares, registros, donaciones y gestión de solicitudes.
 
 ### Roles
@@ -59,8 +65,7 @@ PersistentVolumeClaim en `/data`); no se puede escalar horizontalmente.
 | Gestor de refugio (`refugio_admin`) | Gestionar todas las mascotas y solicitudes, ver registros y donaciones. |
 | Administrador (`admin`) | Todo lo anterior, verificar hogares y ver sus datos reservados. |
 
-El rol `refugio_admin` se asigna por base de datos:
-`UPDATE usuarios SET rol='refugio_admin' WHERE correo='...';`
+Los roles de gestor de refugio y administrador se asignan desde Panel > Usuarios.
 
 ## Seguridad
 

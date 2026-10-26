@@ -10,6 +10,8 @@ import Footer from './components/Footer';
 import Inicio from './components/Inicio';
 import Legal from './components/Legal';
 import AvisoCookies from './components/AvisoCookies';
+import Restablecer from './components/Restablecer';
+import BotonWhatsApp from './components/BotonWhatsApp';
 import ModalHojaDeVida from './components/ModalHojaDeVida';
 import ModalAdopcion from './components/ModalAdopcion';
 import ModalRegistroHogar from './components/ModalRegistroHogar';
@@ -70,6 +72,8 @@ function AppContent() {
           </div>
         )}
 
+        {vistaActiva === 'restablecer' && <Restablecer />}
+
         {(vistaActiva === 'privacidad' || vistaActiva === 'terminos') && <Legal />}
 
         {vistaActiva === 'mapa' && (
@@ -102,6 +106,7 @@ function AppContent() {
       <ModalMascotaPropia />
       <ModalManejoEspecial />
       <ModalDonar />
+      <BotonWhatsApp />
       <BarraMovil />
       <AvisoCookies />
       <ToastContainer />

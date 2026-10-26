@@ -27,6 +27,19 @@ export const config = {
   recaptchaSecret: process.env.RECAPTCHA_SECRET_KEY ?? '',
   recaptchaMinimo: Number(process.env.RECAPTCHA_MIN_SCORE ?? 0.5),
   recaptchaUrl: process.env.RECAPTCHA_VERIFY_URL ?? 'https://www.google.com/recaptcha/api/siteverify',
+  // Correo saliente (recuperación de contraseña). Sin SMTP_HOST el envío queda desactivado.
+  smtp: {
+    host: process.env.SMTP_HOST ?? '',
+    puerto: Number(process.env.SMTP_PORT ?? 587),
+    seguro: (process.env.SMTP_SECURE ?? 'false') === 'true',
+    usuario: process.env.SMTP_USER ?? '',
+    clave: process.env.SMTP_PASS ?? '',
+    remitente: process.env.SMTP_FROM ?? '',
+  },
+  // Dirección pública del sitio (https://...), usada en los enlaces que se envían por correo
+  appUrl: (process.env.APP_URL ?? '').replace(/\/+$/, ''),
+  // Número de WhatsApp de la línea de bienestar animal, con indicativo y solo dígitos (ej. 573001234567)
+  whatsappBienestar: (process.env.WHATSAPP_BIENESTAR ?? '').replace(/\D/g, ''),
   seedDemo: (process.env.SEED_DEMO ?? 'false') === 'true',
   // número de proxies de confianza delante del contenedor (0 = ninguno)
   trustProxy: Number(process.env.TRUST_PROXY ?? 0),

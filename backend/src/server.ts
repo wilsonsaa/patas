@@ -14,6 +14,9 @@ import rutasAuth from './routes/auth.js';
 import rutasMascotas from './routes/mascotas.js';
 import rutasTramites from './routes/tramites.js';
 import rutasArchivos from './routes/archivos.js';
+import rutasRecuperacion from './routes/recuperacion.js';
+import rutasSeguimiento from './routes/seguimiento.js';
+import { correoActivo } from './correo.js';
 
 const app = Fastify({
   trustProxy: config.trustProxy as unknown as boolean, // número de saltos de proxy de confianza
@@ -73,11 +76,17 @@ app.setErrorHandler((err: any, req, reply) => {
 
 app.get('/api/salud', async () => { await q('SELECT 1'); return { ok: true }; });
 // Configuración pública que necesita el navegador (la clave del sitio de reCAPTCHA no es secreta)
-app.get('/api/config', async () => ({ recaptchaSiteKey: recaptchaActivo() ? config.recaptchaSiteKey : '' }));
+app.get('/api/config', async () => ({
+  recaptchaSiteKey: recaptchaActivo() ? config.recaptchaSiteKey : '',
+  whatsappBienestar: config.whatsappBienestar,
+  recuperacionPorCorreo: correoActivo(),
+}));
 await app.register(rutasAuth);
 await app.register(rutasMascotas);
 await app.register(rutasTramites);
 await app.register(rutasArchivos);
+await app.register(rutasRecuperacion);
+await app.register(rutasSeguimiento);
 
 // Aplicación web compilada (imagen única): archivos estáticos + respaldo a index.html
 if (config.staticDir) {
@@ -96,6 +105,7 @@ if (config.staticDir) {
   });
 }
 
+if (!correoActivo()) app.log.warn('Correo DESACTIVADO: define SMTP_HOST, SMTP_FROM y APP_URL para la recuperación de contraseña por correo.');
 if (!recaptchaActivo()) app.log.warn('reCAPTCHA DESACTIVADO: define RECAPTCHA_SECRET_KEY para proteger los formularios.');
 await migrar();
 await sembrar(app.log);

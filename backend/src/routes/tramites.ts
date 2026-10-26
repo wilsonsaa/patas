@@ -112,9 +112,9 @@ export default async function rutasTramites(app: FastifyInstance) {
         await c.query("UPDATE solicitudes SET estado='Rechazada', notas_gestor = notas_gestor || ' [Cierre automático: la mascota fue adoptada por otra familia]' WHERE mascota_id=$1 AND id<>$2 AND estado NOT IN ('Aprobada','Rechazada')", [s.mascota_id, id]);
         const l = await c.query('SELECT tipo, codigo, nombre FROM lugares WHERE id=$1', [s.m_lugar_id]);
         await c.query(
-          `INSERT INTO adopciones (solicitud_id, mascota_nombre, mascota_foto, adoptante_nombre, lugar_nombre, testimonio)
-           VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (solicitud_id) DO NOTHING`,
-          [id, s.m_nombre, s.m_fotos?.[0] ?? '', s.nombre, nombrePublico(l.rows[0]), '¡Adopción aprobada! Un nuevo comienzo lleno de amor y lealtad.']);
+          `INSERT INTO adopciones (solicitud_id, mascota_nombre, mascota_foto, adoptante_nombre, lugar_nombre, testimonio, lugar_id, proxima_visita)
+           VALUES ($1,$2,$3,$4,$5,$6,$7, current_date + 15) ON CONFLICT (solicitud_id) DO NOTHING`,
+          [id, s.m_nombre, s.m_fotos?.[0] ?? '', s.nombre, nombrePublico(l.rows[0]), '¡Adopción aprobada! Un nuevo comienzo lleno de amor y lealtad.', s.m_lugar_id]);
       } else if (d.estado === 'Rechazada') {
         // si no quedan postulaciones activas, la mascota vuelve a estar disponible
         await c.query(`UPDATE mascotas SET estado='Disponible' WHERE id=$1 AND estado='En proceso'
@@ -212,7 +212,7 @@ export default async function rutasTramites(app: FastifyInstance) {
   app.post('/api/donaciones', { config: { rateLimit: { max: 5, timeWindow: '10 minutes' } }, preHandler: captcha('donacion') }, async (req, reply) => {
     const d = validar(z.object({
       nombre: texto(120, 3), telefono, correo: z.union([z.literal(''), correo]).default(''),
-      tipo: z.enum(['Alimento', 'Medicamentos e insumos', 'Cobijas y accesorios', 'Dinero', 'Tiempo o voluntariado', 'Otro']),
+      tipo: z.enum(['Alimento', 'Medicamentos e insumos', 'Cobijas y accesorios', 'Elementos de aseo', 'Tiempo o voluntariado', 'Otro']),
       descripcion: texto(1000, 5), aceptaDatos: si('Debes autorizar el tratamiento de datos personales'),
     }), req.body);
     const [r] = await q('INSERT INTO donaciones (radicado, nombre, telefono, correo, tipo, descripcion) VALUES ($1,$2,$3,$4,$5,$6) RETURNING radicado',
@@ -271,7 +271,8 @@ export default async function rutasTramites(app: FastifyInstance) {
       (SELECT count(*)::int FROM solicitudes WHERE estado='Pendiente') AS solicitudes_pendientes,
       (SELECT count(*)::int FROM mascotas_propias) AS mascotas_registradas,
       (SELECT count(*)::int FROM manejo_especial WHERE estado IN ('Radicado','En revisión')) AS manejo_especial_pendientes,
-      (SELECT count(*)::int FROM donaciones WHERE estado='Nueva') AS donaciones_nuevas`);
+      (SELECT count(*)::int FROM donaciones WHERE estado='Nueva') AS donaciones_nuevas,
+      (SELECT count(*)::int FROM adopciones WHERE seguimiento <> 'Cerrado' AND proxima_visita <= current_date) AS seguimientos_vencidos`);
     return r;
   });
 }

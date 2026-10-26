@@ -91,6 +91,17 @@ export default function LogosAliados({ className = '', variant = 'banner' }: Log
             referrerPolicy="no-referrer"
           />
         </div>
+
+        {/* Universidad Externado de Colombia (aliado académico) */}
+        <div className="hidden md:flex items-center pl-3 border-l border-gray-200">
+          <img
+            src={LOGOS_CONFIG.externado.src}
+            onError={(e) => handleImgError(e, LOGOS_CONFIG.externado.fallbackSrc)}
+            alt={LOGOS_CONFIG.externado.alt}
+            className="h-8 w-auto object-contain drop-shadow-xs"
+            referrerPolicy="no-referrer"
+          />
+        </div>
       </div>
     );
   }

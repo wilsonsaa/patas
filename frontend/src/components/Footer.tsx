@@ -2,9 +2,10 @@ import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { PawPrint, Heart, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react';
 import LogosAliados from './LogosAliados';
+import { IconoWhatsApp } from './BotonWhatsApp';
 
 export default function Footer() {
-  const { config, setVistaActiva, setModalRegistroHogarAbierto, setModalDonarAbierto } = useTheme();
+  const { config, setVistaActiva, setModalRegistroHogarAbierto, setModalDonarAbierto, whatsappBienestar } = useTheme();
 
   return (
     <footer className="w-full bg-white border-t border-gray-200 mt-auto overflow-hidden">
@@ -131,18 +132,15 @@ export default function Footer() {
             <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">
               Líneas de Atención
             </h4>
-            <div className="space-y-2 text-xs text-gray-500">
-              <p className="flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Refugio Municipal Mosquera: +57 (601) 827-0830</span>
-              </p>
-              <p className="flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>bienestaranimal@mosquera-cundinamarca.gov.co</span>
-              </p>
-              <p className="text-[11px] text-gray-400 pt-1">
-                Horario: Lunes a viernes 8:00 AM a 5:00 PM • Mosquera
-              </p>
+            <div className="space-y-3 text-xs text-gray-500">
+              {whatsappBienestar ? (
+                <a href={`https://wa.me/${whatsappBienestar}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-bold text-white bg-[#25D366] hover:brightness-95 px-3.5 py-2 rounded-xl">
+                  <IconoWhatsApp className="w-4 h-4" /> Línea de bienestar animal
+                </a>
+              ) : (
+                <p>Dirección de Protección Animal · Alcaldía de Mosquera</p>
+              )}
+              <p className="text-[11px] text-gray-400">Atención en horario de oficina • Mosquera, Cundinamarca</p>
             </div>
           </div>
         </div>

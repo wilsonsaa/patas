@@ -70,12 +70,14 @@ export default async function rutasAuth(app: FastifyInstance) {
     return conLugar(n);
   });
 
-  app.post('/api/auth/password', limiteEstricto, async (req) => {
+  app.post('/api/auth/password', limiteEstricto, async (req, reply) => {
     const u = await exigir(req);
     const d = validar(z.object({ actual: z.string().max(128), nueva: password }), req.body);
     const [f] = await q('SELECT password_hash FROM usuarios WHERE id=$1', [u.id]);
     if (!(await verificarPassword(d.actual, f.password_hash))) throw new ErrorHttp(400, 'La contraseña actual no coincide.');
-    await q('UPDATE usuarios SET password_hash=$1 WHERE id=$2', [await hashPassword(d.nueva), u.id]);
+    // cierra las demás sesiones y mantiene abierta la actual
+    await q('UPDATE usuarios SET password_hash=$1, sesion_version = sesion_version + 1 WHERE id=$2', [await hashPassword(d.nueva), u.id]);
+    await iniciarSesion(reply, u.id);
     await auditar(req, u.id, 'cambio_password');
     return { ok: true };
   });

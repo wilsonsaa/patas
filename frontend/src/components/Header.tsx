@@ -19,7 +19,7 @@ export default function Header() {
   } = useTheme();
 
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const verPanel = usuarioActivo.rol === 'admin' || usuarioActivo.rol === 'refugio_admin';
+  const verPanel = usuarioActivo.rol === 'admin' || usuarioActivo.rol === 'refugio_admin' || usuarioActivo.rol === 'hogar_paso';
 
   // Count pending applications
   const solicitudesPendientes = solicitudes.filter(s => s.estado === 'Pendiente').length;

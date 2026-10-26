@@ -1,12 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Pet, RefugioHogar, SolicitudAdopcion, AdopcionExitosa, UsuarioActivo, Vista } from '../types';
-import { api, iniciarRecaptcha } from '../api';
+import { Hallazgo, Pet, RefugioHogar, SolicitudAdopcion, AdopcionExitosa, UsuarioActivo, Vista } from '../types';
+import { api, iniciarRecaptcha, obtenerConfig } from '../api';
 
 // Cada sección tiene su dirección (#/mascotas, #/privacidad…): se puede compartir y funciona el botón Atrás.
-const VISTAS: Vista[] = ['inicio', 'mascotas', 'hogares', 'solicitudes', 'refugios_personas', 'mapa', 'servicios', 'panel', 'privacidad', 'terminos'];
+const VISTAS: Vista[] = ['inicio', 'mascotas', 'hogares', 'solicitudes', 'refugios_personas', 'mapa', 'servicios', 'panel', 'privacidad', 'terminos', 'restablecer'];
 const RUTA: Partial<Record<Vista, string>> = { refugios_personas: 'refugios' };
 const vistaDeHash = (): Vista => {
-  const h = location.hash.replace(/^#\/?/, '');
+  const h = location.hash.replace(/^#\/?/, '').split('?')[0];
   return VISTAS.find((v) => (RUTA[v] ?? v) === h) ?? 'inicio';
 };
 
@@ -23,7 +23,7 @@ interface ToastMessage {
   description: string;
 }
 
-export type NuevaMascota = Omit<Pet, 'id' | 'fechaPublicacion' | 'estado' | 'hogarOrefugioNombre' | 'esHogarPaso' | 'municipio' | 'contactoWhatsapp'>;
+export type NuevaMascota = Omit<Pet, 'id' | 'fechaPublicacion' | 'estado' | 'hogarOrefugioNombre' | 'esHogarPaso' | 'municipio' | 'contactoWhatsapp'> & { hallazgo?: Hallazgo | null };
 export type NuevaSolicitud = Record<string, unknown>;
 
 interface ThemeContextType {
@@ -45,6 +45,8 @@ interface ThemeContextType {
   autenticado: boolean;
   esGestor: boolean;
   esAdmin: boolean;
+  whatsappBienestar: string;
+  recuperacionPorCorreo: boolean;
   iniciarSesion: (correo: string, password: string) => Promise<boolean>;
   registrar: (datos: Record<string, unknown>) => Promise<boolean>;
   actualizarPerfil: (datos: Record<string, unknown>) => Promise<boolean>;
@@ -123,6 +125,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const autenticado = usuarioActivo.rol !== 'visitante';
   const esAdmin = usuarioActivo.rol === 'admin';
   const esGestor = esAdmin || usuarioActivo.rol === 'refugio_admin' || usuarioActivo.rol === 'hogar_paso';
+  const [whatsappBienestar, setWhatsappBienestar] = useState('');
+  const [recuperacionPorCorreo, setRecuperacionPorCorreo] = useState(false);
+  useEffect(() => { obtenerConfig().then((c) => { setWhatsappBienestar(c.whatsappBienestar ?? ''); setRecuperacionPorCorreo(!!c.recuperacionPorCorreo); }); }, []);
 
   const removeToast = useCallback((id: string) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
   const addToast = useCallback((type: 'success' | 'info' | 'error', title: string, description: string) => {
@@ -280,7 +285,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     config, cargando, recargar,
     pets, addPet, updatePetStatus, deletePet, refugios,
     solicitudes, submitSolicitud, updateSolicitudEstado, adopcionesExitosas,
-    usuarioActivo, autenticado, esGestor, esAdmin,
+    usuarioActivo, autenticado, esGestor, esAdmin, whatsappBienestar, recuperacionPorCorreo,
     iniciarSesion, registrar, actualizarPerfil, cerrarSesion, refrescarUsuario, requerirSesion,
     mascotaSeleccionada, setMascotaSeleccionada,
     mascotaParaAdoptar: mascotaParaAdoptarInterna, setMascotaParaAdoptar,
@@ -295,7 +300,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [cargando, pets, refugios, solicitudes, adopcionesExitosas, usuarioActivo, mascotaSeleccionada, mascotaParaAdoptarInterna,
     modalRegistroHogar, modalSubirMascota, modalRegistroAdoptanteAbierto, modalMascotaPropia, modalManejoEspecial,
-    modalDonarAbierto, vistaActiva, toasts]);
+    modalDonarAbierto, vistaActiva, toasts, whatsappBienestar, recuperacionPorCorreo]);
 
   return <ThemeContext.Provider value={valor}>{children}</ThemeContext.Provider>;
 }

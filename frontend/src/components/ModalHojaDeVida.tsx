@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Pet } from '../types';
 import { useTheme } from '../context/ThemeContext';
-import { X, CheckCircle2, ShieldCheck, Heart, MapPin, Calendar, Home, MessageCircle, AlertCircle, Sparkles, PawPrint } from 'lucide-react';
+import { X, CheckCircle2, ShieldCheck, Heart, MapPin, Calendar, Home, MessageCircle, AlertCircle, Sparkles, PawPrint, MapPinned } from 'lucide-react';
+import ModalHallazgo from './ModalHallazgo';
 
 interface ModalHojaDeVidaProps {
   mascota: Pet;
@@ -9,7 +10,11 @@ interface ModalHojaDeVidaProps {
 }
 
 export default function ModalHojaDeVida({ mascota, onClose }: ModalHojaDeVidaProps) {
-  const { setMascotaParaAdoptar, refugios } = useTheme();
+  const { setMascotaParaAdoptar, refugios, usuarioActivo } = useTheme();
+  const [editarHallazgo, setEditarHallazgo] = useState(false);
+  // georreferencian: administración, refugios y el hogar de paso que tiene a cargo al animal
+  const puedeGestionar = usuarioActivo.rol === 'admin' || usuarioActivo.rol === 'refugio_admin' ||
+    (usuarioActivo.rol === 'hogar_paso' && usuarioActivo.lugarId === mascota.hogarOrefugioId);
   const [fotoActiva, setFotoActiva] = useState(0);
 
   // Find shelter or foster home details
@@ -157,6 +162,24 @@ export default function ModalHojaDeVida({ mascota, onClose }: ModalHojaDeVidaPro
                 )}
               </div>
 
+              {/* Dónde fue rescatado (solo la referencia escrita; la coordenada es interna) */}
+              {(mascota.hallazgoReferencia || puedeGestionar) && (
+                <div className="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 mb-3 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2">
+                    <MapPinned className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">Lugar de rescate</p>
+                      <p className="text-sm text-gray-700">{mascota.hallazgoReferencia || 'Sin registrar'}{mascota.hallazgoFecha ? ` · ${new Date(mascota.hallazgoFecha + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</p>
+                    </div>
+                  </div>
+                  {puedeGestionar && (
+                    <button type="button" onClick={() => setEditarHallazgo(true)} className="text-xs font-bold text-rose-700 bg-white border border-rose-200 hover:bg-rose-50 px-3 py-1.5 rounded-lg shrink-0 cursor-pointer">
+                      {mascota.hallazgoReferencia ? 'Editar' : 'Georreferenciar'}
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Responsable / Hogar de Paso */}
               <div className="p-3 bg-gray-50 rounded-2xl border border-gray-200/80 mb-4">
                 <div className="flex items-center gap-2 mb-1">
@@ -209,6 +232,7 @@ export default function ModalHojaDeVida({ mascota, onClose }: ModalHojaDeVidaPro
           </div>
         </div>
       </div>
+      {editarHallazgo && <ModalHallazgo mascota={mascota} onClose={() => setEditarHallazgo(false)} />}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { AvisoDatos, Campo, Casilla, ErrorFormulario, Modal, BotonesFormulario, 
 
 const TIPOS = [
   ['Alimento', '🥫'], ['Medicamentos e insumos', '💊'], ['Cobijas y accesorios', '🧣'],
-  ['Dinero', '💚'], ['Tiempo o voluntariado', '🤝'], ['Otro', '🎁'],
+  ['Elementos de aseo', '🧴'], ['Tiempo o voluntariado', '🤝'], ['Otro', '🎁'],
 ] as const;
 
 export default function ModalDonar() {
@@ -37,7 +37,7 @@ export default function ModalDonar() {
       {radicado ? (
         <Radicado titulo="¡Gracias por tu generosidad!" radicado={radicado} onClose={cerrar}>
           Registramos tu intención de donar. La Dirección de Protección Animal te contactará para coordinar la entrega.
-          <strong> Nadie te pedirá transferencias de dinero a cuentas personales.</strong>
+          <strong> La plataforma no recibe dinero: solo donaciones en especie y voluntariado.</strong>
         </Radicado>
       ) : (
         <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-5">
@@ -51,7 +51,7 @@ export default function ModalDonar() {
                 </button>
               ))}
             </div>
-            <Campo etiqueta="Describe tu donación *" ancho ayuda={f.tipo === 'Dinero' ? 'La plataforma no recibe pagos. Te indicaremos el canal oficial para hacerlo.' : undefined}>
+            <Campo etiqueta="Describe tu donación *" ancho>
               <textarea required minLength={5} maxLength={1000} rows={3} value={f.descripcion} onChange={set('descripcion')} className={claseInput} placeholder="Ej. 2 bultos de concentrado para adulto, puedo llevarlos el sábado" />
             </Campo>
           </Seccion>

@@ -3,6 +3,15 @@ import { useTheme } from '../context/ThemeContext';
 import { Heart, PawPrint, ShieldAlert, Home, HandHeart, ArrowRight, Search, FileCheck2, HeartHandshake, Lock, ShieldCheck, Stethoscope, Quote, MapPin } from 'lucide-react';
 import MascotaCard from './MascotaCard';
 
+const FOTOS = [
+  { src: '/fotos/perro-calle.webp', alt: 'Perro criollo café mirando a la cámara en la calle', clase: 'col-span-2 row-span-2', pos: '50% 40%' },
+  { src: '/fotos/gato-naranja.webp', alt: 'Gato naranja de ojos verdes', clase: '', pos: '50% 30%' },
+  { src: '/fotos/perro-cachorro.webp', alt: 'Cachorro criollo con pañoleta', clase: '', pos: '50% 35%' },
+  { src: '/fotos/perro-labrador.webp', alt: 'Perro mestizo sentado en el pasto', clase: '', pos: '50% 30%' },
+  { src: '/fotos/perro-panoleta.webp', alt: 'Perro criollo de pelo gris con pañoleta de huellas', clase: '', pos: '40% 40%' },
+  { src: '/fotos/gato-atigrado.webp', alt: 'Gato atigrado de ojos azules', clase: '', pos: '50% 40%' },
+];
+
 const Etiqueta = ({ children }: { children: React.ReactNode }) => (
   <p className="text-xs font-extrabold uppercase tracking-widest text-emerald-700 mb-2">{children}</p>
 );
@@ -71,8 +80,15 @@ export default function Inicio() {
           </div>
 
           <div className="relative">
-            <img src="/logos/portada.png" alt="Familia con un perro y un gato adoptados" className="w-full aspect-[4/3] object-cover rounded-[2rem] shadow-2xl shadow-emerald-900/10" fetchPriority="high" />
-            <dl className="relative sm:absolute sm:-bottom-6 sm:left-6 sm:right-6 mt-4 sm:mt-0 grid grid-cols-3 bg-white rounded-2xl shadow-xl border border-gray-100 divide-x divide-gray-100">
+            {/* Mosaico de animales rescatados (criollos de la región) */}
+            <div className="grid grid-cols-3 grid-rows-[repeat(3,minmax(0,1fr))] gap-2 sm:gap-3 h-[360px] sm:h-[480px]">
+              {FOTOS.map((f) => (
+                <figure key={f.src} className={`relative overflow-hidden rounded-2xl sm:rounded-3xl bg-emerald-50 ${f.clase}`}>
+                  <img src={f.src} alt={f.alt} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" style={{ objectPosition: f.pos }} loading="eager" />
+                </figure>
+              ))}
+            </div>
+            <dl className="relative mt-4 grid grid-cols-3 bg-white rounded-2xl shadow-xl border border-gray-100 divide-x divide-gray-100">
               {cifras.map((c) => (
                 <div key={c.texto} className="px-3 py-4 text-center">
                   <dt className="sr-only">{c.texto}</dt>
@@ -205,7 +221,7 @@ export default function Inicio() {
         <div className="rounded-[2rem] bg-gradient-to-r from-rose-600 to-orange-500 text-white p-8 sm:p-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="max-w-xl">
             <h2 className="text-2xl sm:text-3xl font-black font-heading leading-tight">¿No puedes adoptar? También puedes ayudar.</h2>
-            <p className="text-white/90 mt-2 text-sm sm:text-base">Alimento, medicamentos, cobijas o unas horas de tu tiempo cambian la vida de un animal rescatado.</p>
+            <p className="text-white/90 mt-2 text-sm sm:text-base">Alimento, medicamentos, cobijas o unas horas de tu tiempo cambian la vida de un animal rescatado. No recibimos dinero.</p>
           </div>
           <button id="inicio-btn-donar" onClick={() => setModalDonarAbierto(true)} className="shrink-0 flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-white text-rose-700 font-bold shadow-lg hover:-translate-y-0.5 transition-transform cursor-pointer">
             <HandHeart className="w-5 h-5" /> Quiero donar

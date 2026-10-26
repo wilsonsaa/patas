@@ -25,6 +25,8 @@ function aMascota(m: any) {
     hogarOrefugioNombre: nombrePublico({ tipo: m.l_tipo, codigo: m.l_codigo, nombre: m.l_nombre }),
     esHogarPaso: esHogar, municipio: MUNICIPIO,
     fechaPublicacion: new Date(m.creado_en).toISOString().slice(0, 10),
+    // dónde fue rescatado: solo la referencia escrita y la fecha (las coordenadas son internas)
+    hallazgoReferencia: m.hallazgo_referencia || undefined, hallazgoFecha: m.hallazgo_fecha || undefined,
     // el teléfono de un hogar de paso nunca se publica: el contacto pasa por la plataforma
     contactoWhatsapp: esHogar ? undefined : String(m.l_telefono).replace(/\D/g, '').slice(0, 12) || undefined,
   };
@@ -42,6 +44,13 @@ function aLugarPublico(l: any) {
     direccion: l.direccion, horario: l.horario, lat: l.lat, lng: l.lng };
 }
 
+// Lugar donde se encontró el animal. Las coordenadas se limitan a una zona razonable alrededor de Mosquera.
+export const cuerpoHallazgo = z.object({
+  lat: z.number().min(4.3).max(5.1), lng: z.number().min(-74.6).max(-73.8),
+  fecha: z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional().transform((v) => v || null),
+  referencia: texto(200).default(''),
+});
+
 const cuerpoMascota = z.object({
   nombre: texto(60, 1), especie: z.enum(['perro', 'gato', 'otro']), raza: texto(80).default(''),
   edadCategoria: z.enum(['Cachorro', 'Joven', 'Adulto', 'Senior']), edadTexto: texto(40).default(''),
@@ -51,6 +60,7 @@ const cuerpoMascota = z.object({
   salud: z.object({ vacunado: z.boolean(), esterilizado: z.boolean(), desparasitado: z.boolean(),
     microchip: z.boolean(), detallesMedicos: texto(500).default('') }),
   hogarOrefugioId: uuid.optional(),
+  hallazgo: cuerpoHallazgo.nullable().optional(),
 });
 
 export default async function rutasMascotas(app: FastifyInstance) {
@@ -78,11 +88,13 @@ export default async function rutasMascotas(app: FastifyInstance) {
     if (n >= lugar.capacidad) throw new ErrorHttp(409, 'Este lugar ya alcanzó su capacidad máxima de resguardo.');
     const [m] = await q(
       `INSERT INTO mascotas (nombre, especie, raza, edad_categoria, edad_texto, genero, tamano, fotos, descripcion, temperamento,
-         vacunado, esterilizado, desparasitado, microchip, detalles_medicos, lugar_id, creado_por)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
+         vacunado, esterilizado, desparasitado, microchip, detalles_medicos, lugar_id, creado_por,
+         hallazgo_lat, hallazgo_lng, hallazgo_fecha, hallazgo_referencia, hallazgo_por)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22) RETURNING id`,
       [d.nombre, d.especie, d.raza, d.edadCategoria, d.edadTexto, d.genero, d.tamano, JSON.stringify(d.fotos), d.descripcion,
         JSON.stringify(d.temperamento), d.salud.vacunado, d.salud.esterilizado, d.salud.desparasitado, d.salud.microchip,
-        d.salud.detallesMedicos, lugar.id, u.id]);
+        d.salud.detallesMedicos, lugar.id, u.id,
+        d.hallazgo?.lat ?? null, d.hallazgo?.lng ?? null, d.hallazgo?.fecha ?? null, d.hallazgo?.referencia ?? '', d.hallazgo ? u.id : null]);
     await auditar(req, u.id, 'mascota_creada', 'mascotas', m.id);
     const [fila] = await q(`${SQL_MASCOTA} WHERE m.id = $1`, [m.id]);
     return reply.code(201).send(aMascota(fila));
@@ -102,6 +114,21 @@ export default async function rutasMascotas(app: FastifyInstance) {
     const d = validar(z.object({ estado: z.enum(['Disponible', 'En proceso', 'Adoptado']) }), req.body);
     await q('UPDATE mascotas SET estado=$1 WHERE id=$2', [d.estado, id]);
     await auditar(req, u.id, `mascota_estado:${d.estado}`, 'mascotas', id);
+    return { ok: true };
+  });
+
+  app.get('/api/mascotas/:id/hallazgo', async (req) => {
+    const { id } = await mascotaGestionable(req);
+    const [m] = await q('SELECT hallazgo_lat AS lat, hallazgo_lng AS lng, hallazgo_fecha AS fecha, hallazgo_referencia AS referencia FROM mascotas WHERE id=$1', [id]);
+    return m.lat == null ? null : m;
+  });
+
+  app.put('/api/mascotas/:id/hallazgo', async (req) => {
+    const { u, id } = await mascotaGestionable(req);
+    const d = validar(cuerpoHallazgo, req.body);
+    await q('UPDATE mascotas SET hallazgo_lat=$1, hallazgo_lng=$2, hallazgo_fecha=$3, hallazgo_referencia=$4, hallazgo_por=$5 WHERE id=$6',
+      [d.lat, d.lng, d.fecha, d.referencia, u.id, id]);
+    await auditar(req, u.id, 'hallazgo_registrado', 'mascotas', id);
     return { ok: true };
   });
 

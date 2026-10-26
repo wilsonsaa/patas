@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { PlusCircle, CheckCircle2, Stethoscope } from 'lucide-react';
+import { PlusCircle, CheckCircle2, Stethoscope, MapPinned } from 'lucide-react';
 import { PetSpecies, PetAgeCategory, PetSize } from '../types';
-import { Campo, ErrorFormulario, Modal, BotonesFormulario, Seccion, SubirFoto, claseInput } from './ui';
+import { Campo, ErrorFormulario, Modal, BotonesFormulario, Seccion, SiNo, SubirFoto, claseInput } from './ui';
+import SelectorUbicacion from './SelectorUbicacion';
 
 export default function ModalSubirMascota() {
   const { modalSubirMascotaAbierto, setModalSubirMascotaAbierto, addPet, refugios, usuarioActivo, setVistaActiva } = useTheme();
@@ -13,12 +14,16 @@ export default function ModalSubirMascota() {
   };
   const [f, setF] = useState(inicial);
   const [salud, setSalud] = useState({ vacunado: false, esterilizado: false, desparasitado: false, microchip: false });
+  const [conHallazgo, setConHallazgo] = useState<boolean | null>(null);
+  const [punto, setPunto] = useState<{ lat: number; lng: number } | null>(null);
+  const [hallazgoFecha, setHallazgoFecha] = useState('');
+  const [hallazgoRef, setHallazgoRef] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
 
   if (!modalSubirMascotaAbierto) return null;
   const esHogar = usuarioActivo.rol === 'hogar_paso';
-  const cerrar = () => { setModalSubirMascotaAbierto(false); setF(inicial); setSalud({ vacunado: false, esterilizado: false, desparasitado: false, microchip: false }); setError(''); };
+  const cerrar = () => { setModalSubirMascotaAbierto(false); setF(inicial); setSalud({ vacunado: false, esterilizado: false, desparasitado: false, microchip: false }); setError(''); setConHallazgo(null); setPunto(null); setHallazgoFecha(''); setHallazgoRef(''); };
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,8 +31,10 @@ export default function ModalSubirMascota() {
     if (!f.foto) return setError('Sube al menos una foto de la mascota.');
     const hogarOrefugioId = esHogar ? undefined : (f.hogarId || refugios[0]?.id);
     if (!esHogar && !hogarOrefugioId) return setError('No hay refugios u hogares verificados donde publicar.');
+    if (conHallazgo && !punto) return setError('Marca en el mapa dónde se encontró al animal, o responde «No» a esa pregunta.');
     setError(''); setEnviando(true);
     const ok = await addPet({
+      hallazgo: conHallazgo && punto ? { ...punto, fecha: hallazgoFecha, referencia: hallazgoRef } : null,
       nombre: f.nombre, especie: f.especie, raza: f.raza, edadCategoria: f.edadCategoria, edadTexto: f.edadTexto, genero: f.genero,
       tamano: f.tamano, fotos: [f.foto], descripcion: f.descripcion,
       temperamento: f.temperamento.split(',').map((t) => t.trim()).filter(Boolean).slice(0, 10),
@@ -85,6 +92,17 @@ export default function ModalSubirMascota() {
             ))}
           </div>
           <Campo etiqueta="Detalles médicos" ancho><input maxLength={500} value={f.detallesMedicos} onChange={set('detallesMedicos')} className={claseInput} /></Campo>
+        </Seccion>
+
+        <Seccion titulo="Lugar donde se encontró" icono={<MapPinned className="w-4 h-4 text-emerald-600" />}>
+          <SiNo pregunta="¿Sabes dónde se encontró o recogió?" ayuda="Ayuda a identificar los puntos críticos de abandono. La coordenada no se publica." valor={conHallazgo} onChange={setConHallazgo} />
+          {conHallazgo && (
+            <>
+              <SelectorUbicacion valor={punto} onChange={setPunto} />
+              <Campo etiqueta="Fecha del hallazgo"><input type="date" max={new Date().toISOString().slice(0, 10)} value={hallazgoFecha} onChange={(e) => setHallazgoFecha(e.target.value)} className={claseInput} /></Campo>
+              <Campo etiqueta="Referencia (se muestra en su hoja de vida)"><input maxLength={200} value={hallazgoRef} onChange={(e) => setHallazgoRef(e.target.value)} className={claseInput} placeholder="Ej. Parque principal, barrio El Trébol" /></Campo>
+            </>
+          )}
         </Seccion>
 
         <BotonesFormulario onCancelar={cerrar} texto="Publicar mascota" enviando={enviando} icono={<CheckCircle2 className="w-4 h-4" />} />

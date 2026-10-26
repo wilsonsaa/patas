@@ -134,8 +134,8 @@ function Terminos() {
 
       <H>5. Donaciones</H>
       <P>
-        La plataforma solo registra tu intención de donar; <strong>no recibe pagos ni dinero</strong>. Nadie está autorizado a pedirte transferencias a
-        cuentas personales en nombre de PATAS.
+        Se reciben únicamente donaciones en especie (alimento, medicamentos, insumos, cobijas, elementos de aseo) y voluntariado. <strong>PATAS no recibe
+        dinero</strong> y nadie está autorizado a pedirte pagos o transferencias en su nombre.
       </P>
 
       <H>6. Uso indebido</H>

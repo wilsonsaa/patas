@@ -41,22 +41,22 @@ export async function sembrar(log: FastifyBaseLogger): Promise<void> {
   }
 
   const mascotas: any[] = [
-    ['Canela', 'perro', 'Criolla / Mestiza Golden', 'Joven', '1 año y 4 meses', 'Hembra', 'Mediano', ['1552053831-71594a27632d', '1518717758536-85ae29035b6d'], 'Disponible',
+    ['Canela', 'perro', 'Criolla mestiza', 'Joven', '1 año y 4 meses', 'Hembra', 'Mediano', ['/fotos/perro-labrador.webp'], 'Disponible',
       'Canela es sumamente cariñosa, juguetona y muy noble. Fue rescatada en Mosquera junto a sus hermanitos. Ya convive perfectamente con niños y otros perritos.',
       ['Cariñosa', 'Sociable', 'Juguetona', 'Aprende rápido'], [true, true, true, true], 'Esquema de vacunación séxtuple al día, control antiparasitario mensual.', ref.id],
-    ['Simba', 'gato', 'Mestizo atigrado naranja', 'Cachorro', '7 meses', 'Macho', 'Pequeño', ['1514888286974-6c03e2ca1dba', '1573865526739-10659fec78a5'], 'Disponible',
+    ['Simba', 'gato', 'Mestizo atigrado naranja', 'Cachorro', '7 meses', 'Macho', 'Pequeño', ['/fotos/gato-naranja.webp'], 'Disponible',
       'Simba es un gato ronroneador por excelencia. Le encanta dormir en las piernas de sus cuidadores. Ideal para apartamento con mallas de seguridad.',
       ['Tranquilo', 'Ronroneador', 'Curioso', 'Dormilón'], [true, true, true, false], 'Negativo a VIF y ViLeF (Leucemia e Inmunodeficiencia Felina).', hogares[1]],
-    ['Rocky', 'perro', 'Mestizo Pastor', 'Adulto', '3 años', 'Macho', 'Grande', ['1587300003388-59208cc962cb', '1537151608828-ea2b11777ee8'], 'Disponible',
+    ['Rocky', 'perro', 'Mestizo Pastor', 'Adulto', '3 años', 'Macho', 'Grande', ['/fotos/perro-calle.webp'], 'Disponible',
       'Rocky es un perro leal, inteligente y protector. Ama los paseos por el parque y responde a comandos básicos.',
       ['Leal', 'Activo', 'Obediente', 'Protector'], [true, true, true, true], 'Excelente condición física, peso óptimo (24 kg).', hogares[0]],
-    ['Luna', 'gato', 'Siamesa mestiza', 'Joven', '1 año', 'Hembra', 'Pequeño', ['1533738363-b7f9aef128ce', '1543852786-1cf6624b9987'], 'Disponible',
-      'Ojos azules hipnotizantes y una personalidad dulce. Resguardada por voluntarios. Busca una familia amorosa y comprometida.',
+    ['Luna', 'gato', 'Mestiza atigrada', 'Joven', '1 año', 'Hembra', 'Pequeño', ['/fotos/gato-atigrado.webp'], 'Disponible',
+      'Ojos claros, curiosa y muy dulce. Resguardada por voluntarios. Busca una familia amorosa y comprometida.',
       ['Cariñosa', 'Vocal', 'Dulce', 'Independiente'], [true, true, true, true], 'Tratada de una dermatitis leve, ya 100% recuperada.', hogares[1]],
-    ['Toby', 'perro', 'Mestizo Schnauzer / Terrier', 'Cachorro', '5 meses', 'Macho', 'Pequeño', ['1583511655857-d19b40a7a54e', '1548199973-03cce0bbc87b'], 'Disponible',
+    ['Toby', 'perro', 'Criollo', 'Cachorro', '5 meses', 'Macho', 'Pequeño', ['/fotos/perro-cachorro.webp'], 'Disponible',
       'Pura ternura y alegría. Rescatado en el centro de Mosquera. Toby adora correr tras pelotas de tenis y convive alegremente con niños.',
       ['Alegre', 'Juguetón', 'Sociable', 'Tierno'], [true, false, true, false], 'Compromiso de esterilización gratuita a los 6 meses en el refugio municipal.', ref.id],
-    ['Bruno', 'perro', 'Mestizo Labrador', 'Senior', '7 años', 'Macho', 'Grande', ['1543466835-00a7907e9de1', '1507146426996-ef05306b995a'], 'Disponible',
+    ['Bruno', 'perro', 'Criollo de pelo duro', 'Senior', '7 años', 'Macho', 'Grande', ['/fotos/perro-panoleta.webp'], 'Disponible',
       'Un caballero sabio, paciente y tranquilo. Ideal para una familia que busque un compañero sereno.',
       ['Tranquilo', 'Noble', 'Paciente', 'Cariñoso'], [true, true, true, true], 'Chequeo geriátrico perfecto, articulaciones sanas.', hogares[2]],
   ];
@@ -65,7 +65,14 @@ export async function sembrar(log: FastifyBaseLogger): Promise<void> {
       `INSERT INTO mascotas (nombre, especie, raza, edad_categoria, edad_texto, genero, tamano, fotos, estado, descripcion, temperamento,
          vacunado, esterilizado, desparasitado, microchip, detalles_medicos, lugar_id)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-      [m[0], m[1], m[2], m[3], m[4], m[5], m[6], JSON.stringify(m[7].map(U)), m[8], m[9], JSON.stringify(m[10]), ...m[11], m[12], m[13]]);
+      [m[0], m[1], m[2], m[3], m[4], m[5], m[6], JSON.stringify(m[7]), m[8], m[9], JSON.stringify(m[10]), ...m[11], m[12], m[13]]);
+  }
+  // Lugares de hallazgo de ejemplo (alrededor de Mosquera)
+  for (const [nombre, lat, lng, ref] of [
+    ['Rocky', 4.7065, -74.2289, 'Parque principal, Centro'], ['Simba', 4.7118, -74.2361, 'Barrio Porvenir Río'],
+    ['Toby', 4.7041, -74.2232, 'Sector El Trébol'], ['Bruno', 4.6992, -74.2428, 'Vereda San José, vía Serrezuela'],
+  ] as const) {
+    await q("UPDATE mascotas SET hallazgo_lat=$1, hallazgo_lng=$2, hallazgo_referencia=$3, hallazgo_fecha = current_date - 30 WHERE nombre=$4", [lat, lng, ref, nombre]);
   }
   for (const a of [
     ['Max', '1561037404-61cd46aa615b', 'Familia Ramírez', 'Refugio Animal Municipal de Mosquera', 'Max llegó a llenar nuestra casa de alegría. Ahora no podemos imaginar un fin de semana sin ir al parque con él.', 'Excelente'],

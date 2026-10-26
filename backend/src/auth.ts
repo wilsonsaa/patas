@@ -34,7 +34,8 @@ export async function verificarPassword(password: string, guardado: string): Pro
 }
 
 export async function iniciarSesion(reply: FastifyReply, usuarioId: string): Promise<void> {
-  const token = await new SignJWT({})
+  const [{ sesion_version: v }] = await q('SELECT sesion_version FROM usuarios WHERE id = $1', [usuarioId]);
+  const token = await new SignJWT({ v })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(usuarioId)
     .setIssuedAt()
@@ -56,9 +57,13 @@ export async function usuarioDe(req: FastifyRequest): Promise<Usuario | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, config.jwtSecret, { algorithms: ['HS256'] });
-    const filas = await q<Usuario>(
-      'SELECT id, nombre, correo, telefono, barrio, rol, lugar_id FROM usuarios WHERE id = $1 AND activo', [payload.sub]);
-    return filas[0] ?? null;
+    const filas = await q<Usuario & { sesion_version: number }>(
+      'SELECT id, nombre, correo, telefono, barrio, rol, lugar_id, sesion_version FROM usuarios WHERE id = $1 AND activo', [payload.sub]);
+    const u = filas[0];
+    // una sesión emitida antes de un cambio de contraseña deja de valer
+    if (!u || u.sesion_version !== (payload.v ?? 0)) return null;
+    const { sesion_version: _v, ...usuario } = u;
+    return usuario;
   } catch {
     return null;
   }

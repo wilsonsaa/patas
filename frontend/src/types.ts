@@ -29,6 +29,8 @@ export interface Pet {
   municipio: string;
   fechaPublicacion: string;
   contactoWhatsapp?: string;
+  hallazgoReferencia?: string;
+  hallazgoFecha?: string;
 }
 
 // Un hogar de paso se identifica públicamente SOLO por su código (HP-0001):
@@ -112,5 +114,7 @@ export interface UsuarioActivo {
   nombreOrganizacion?: string;
 }
 
-export type Vista = 'inicio' | 'mascotas' | 'hogares' | 'solicitudes' | 'refugios_personas' | 'mapa' | 'servicios' | 'panel' | 'privacidad' | 'terminos';
+export type Vista = 'inicio' | 'mascotas' | 'hogares' | 'solicitudes' | 'refugios_personas' | 'mapa' | 'servicios' | 'panel' | 'privacidad' | 'terminos' | 'restablecer';
+
+export interface Hallazgo { lat: number; lng: number; fecha?: string | null; referencia?: string }
 
