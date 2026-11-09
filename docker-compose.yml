@@ -1,34 +1,25 @@
-# PATAS · un solo contenedor (PostgreSQL + API + web)
-#   1) copia .env.example a .env y define ADMIN_EMAIL y ADMIN_PASSWORD
+# PATAS · Plataforma de Acogida Temporal y Adopción Segura
+# Un solo contenedor con PostgreSQL + API + aplicación web.
+#
+#   1) cp .env.example .env        y completa los valores (ver DESPLIEGUE.md)
 #   2) docker compose up -d --build
-#   3) abre http://localhost:8080
+#   3) abre http://localhost:8080  (en producción, detrás de HTTPS)
 name: patas
 
 services:
   patas:
     build: .
-    image: patas:1.1
+    image: patas:1.4
     restart: unless-stopped
     ports:
       - "${PUERTO_WEB:-8080}:8080"
+    env_file:
+      - .env                       # todas las claves y secretos viven SOLO en este archivo
     environment:
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
-      SEED_DEMO: ${SEED_DEMO:-false}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      JWT_SECRET: ${JWT_SECRET:-}        # vacío = se genera solo y se guarda en el volumen
-      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:-}   # clave secreta de reCAPTCHA v3
-      WHATSAPP_BIENESTAR: ${WHATSAPP_BIENESTAR:-}   # línea de bienestar animal, ej. 573001234567
-      APP_URL: ${APP_URL:-}                         # https://tu-dominio (enlaces de los correos)
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      SMTP_FROM: ${SMTP_FROM:-}
-      TRUST_PROXY: ${TRUST_PROXY:-0}     # 1 si hay un proxy o Ingress delante
+      # la contraseña de la base de datos es obligatoria
+      PGPASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
     volumes:
-      - datos:/data                      # base de datos, fotos y secreto de sesión
+      - datos:/data                # base de datos, fotos subidas y secreto de sesión
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]

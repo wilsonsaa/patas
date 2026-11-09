@@ -8,7 +8,7 @@ import path from 'node:path';
 import { config } from './config.js';
 import { migrar, pool, q } from './db.js';
 import { ErrorHttp } from './auth.js';
-import { sembrar } from './seed.js';
+import { crearAdministradorInicial } from './inicial.js';
 import { recaptchaActivo } from './recaptcha.js';
 import rutasAuth from './routes/auth.js';
 import rutasMascotas from './routes/mascotas.js';
@@ -16,6 +16,7 @@ import rutasTramites from './routes/tramites.js';
 import rutasArchivos from './routes/archivos.js';
 import rutasRecuperacion from './routes/recuperacion.js';
 import rutasSeguimiento from './routes/seguimiento.js';
+import rutasRefugios from './routes/refugios.js';
 import { correoActivo } from './correo.js';
 
 const app = Fastify({
@@ -77,9 +78,12 @@ app.setErrorHandler((err: any, req, reply) => {
 app.get('/api/salud', async () => { await q('SELECT 1'); return { ok: true }; });
 // Configuración pública que necesita el navegador (la clave del sitio de reCAPTCHA no es secreta)
 app.get('/api/config', async () => ({
-  recaptchaSiteKey: recaptchaActivo() ? config.recaptchaSiteKey : '',
+  recaptchaSiteKey: recaptchaActivo() && config.recaptchaSiteKey ? config.recaptchaSiteKey : '',
   whatsappBienestar: config.whatsappBienestar,
   recuperacionPorCorreo: correoActivo(),
+  entidad: config.entidad,
+  mapaTilesUrl: config.mapa.tilesUrl, mapaAtribucion: config.mapa.atribucion,
+  mapaSateliteUrl: config.mapa.sateliteUrl, mapaSateliteAtribucion: config.mapa.sateliteAtribucion,
 }));
 await app.register(rutasAuth);
 await app.register(rutasMascotas);
@@ -87,6 +91,7 @@ await app.register(rutasTramites);
 await app.register(rutasArchivos);
 await app.register(rutasRecuperacion);
 await app.register(rutasSeguimiento);
+await app.register(rutasRefugios);
 
 // Aplicación web compilada (imagen única): archivos estáticos + respaldo a index.html
 if (config.staticDir) {
@@ -106,9 +111,10 @@ if (config.staticDir) {
 }
 
 if (!correoActivo()) app.log.warn('Correo DESACTIVADO: define SMTP_HOST, SMTP_FROM y APP_URL para la recuperación de contraseña por correo.');
+if (recaptchaActivo() !== !!config.recaptchaSiteKey) app.log.warn('reCAPTCHA incompleto: define RECAPTCHA_SITE_KEY y RECAPTCHA_SECRET_KEY juntas.');
 if (!recaptchaActivo()) app.log.warn('reCAPTCHA DESACTIVADO: define RECAPTCHA_SECRET_KEY para proteger los formularios.');
 await migrar();
-await sembrar(app.log);
+await crearAdministradorInicial(app.log);
 await app.listen({ host: '0.0.0.0', port: config.puerto });
 
 for (const senal of ['SIGTERM', 'SIGINT'] as const)

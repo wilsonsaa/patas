@@ -2,7 +2,8 @@ import type { FastifyRequest } from 'fastify';
 import { config } from './config.js';
 import { ErrorHttp } from './auth.js';
 
-export const recaptchaActivo = () => config.recaptchaSecret.length > 0;
+// Activo solo con las dos claves: con una sola, el navegador no podría generar tokens válidos
+export const recaptchaActivo = () => config.recaptchaSecret.length > 0 && config.recaptchaSiteKey.length > 0;
 
 /**
  * Verifica con Google el token de reCAPTCHA v3 que envía el navegador en la cabecera X-Recaptcha-Token.

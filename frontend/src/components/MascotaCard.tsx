@@ -81,7 +81,7 @@ export default function MascotaCard({ mascota }: MascotaCardProps) {
       {/* Imagen & Badges Superiores */}
       <div className="relative h-56 w-full overflow-hidden bg-gray-100">
         <img
-          src={mascota.fotos[0] || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80'}
+          src={mascota.fotos[0] || '/fotos/perro-calle.webp'}
           alt={mascota.nombre}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-108"
           loading="lazy"

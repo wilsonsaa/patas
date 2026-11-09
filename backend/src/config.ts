@@ -1,46 +1,72 @@
-function requerido(nombre: string): string {
-  const v = process.env[nombre];
-  if (!v) throw new Error(`Falta la variable de entorno ${nombre}`);
-  return v;
-}
-
+// Toda la configuración sensible llega por variables de entorno. El código no contiene claves ni datos de la entidad.
+const env = (n: string, d = '') => (process.env[n] ?? d).trim();
 const esProduccion = process.env.NODE_ENV === 'production';
-const jwtSecret = requerido('JWT_SECRET');
-if (jwtSecret.length < 32) throw new Error('JWT_SECRET debe tener al menos 32 caracteres');
+
+let jwtCache: Uint8Array | null = null;
 
 export const config = {
   esProduccion,
-  puerto: Number(process.env.PORT ?? 3000),
+  puerto: Number(env('PORT', '3000')),
   // vacío = conexión por las variables PG* (en el contenedor: socket local de PostgreSQL)
-  databaseUrl: process.env.DATABASE_URL ?? '',
-  // carpeta con la aplicación web compilada; vacío = la API no sirve la web
-  staticDir: process.env.STATIC_DIR ?? '',
-  jwtSecret: new TextEncoder().encode(jwtSecret),
-  // true cuando el sitio se sirve por HTTPS (obligatorio en producción real)
-  cookieSegura: (process.env.COOKIE_SECURE ?? 'false') === 'true',
-  sesionHoras: Number(process.env.SESION_HORAS ?? 8),
-  uploadDir: process.env.UPLOAD_DIR ?? './uploads',
-  adminCorreo: process.env.ADMIN_EMAIL ?? '',
-  adminPassword: process.env.ADMIN_PASSWORD ?? '',
-  // reCAPTCHA v3. La clave del sitio es pública; la secreta SOLO va en la variable de entorno.
-  recaptchaSiteKey: process.env.RECAPTCHA_SITE_KEY ?? '6LfL6eEtAAAAAG908hiSX5ypoPwreHIw_EJAveqE',
-  recaptchaSecret: process.env.RECAPTCHA_SECRET_KEY ?? '',
-  recaptchaMinimo: Number(process.env.RECAPTCHA_MIN_SCORE ?? 0.5),
-  recaptchaUrl: process.env.RECAPTCHA_VERIFY_URL ?? 'https://www.google.com/recaptcha/api/siteverify',
-  // Correo saliente (recuperación de contraseña). Sin SMTP_HOST el envío queda desactivado.
-  smtp: {
-    host: process.env.SMTP_HOST ?? '',
-    puerto: Number(process.env.SMTP_PORT ?? 587),
-    seguro: (process.env.SMTP_SECURE ?? 'false') === 'true',
-    usuario: process.env.SMTP_USER ?? '',
-    clave: process.env.SMTP_PASS ?? '',
-    remitente: process.env.SMTP_FROM ?? '',
+  databaseUrl: env('DATABASE_URL'),
+  staticDir: env('STATIC_DIR'),
+  /** Secreto para firmar sesiones. Se valida al usarlo, para que la consola de administración no lo necesite. */
+  get jwtSecret(): Uint8Array {
+    if (jwtCache) return jwtCache;
+    const s = env('JWT_SECRET');
+    if (s.length < 32) throw new Error('JWT_SECRET debe existir y tener al menos 32 caracteres');
+    return (jwtCache = new TextEncoder().encode(s));
   },
-  // Dirección pública del sitio (https://...), usada en los enlaces que se envían por correo
-  appUrl: (process.env.APP_URL ?? '').replace(/\/+$/, ''),
-  // Número de WhatsApp de la línea de bienestar animal, con indicativo y solo dígitos (ej. 573001234567)
-  whatsappBienestar: (process.env.WHATSAPP_BIENESTAR ?? '').replace(/\D/g, ''),
-  seedDemo: (process.env.SEED_DEMO ?? 'false') === 'true',
-  // número de proxies de confianza delante del contenedor (0 = ninguno)
-  trustProxy: Number(process.env.TRUST_PROXY ?? 0),
+  cookieSegura: env('COOKIE_SECURE', 'false') === 'true',
+  sesionHoras: Number(env('SESION_HORAS', '8')),
+  uploadDir: env('UPLOAD_DIR', './uploads'),
+  trustProxy: Number(env('TRUST_PROXY', '0')),
+
+  // Administrador inicial: se crea solo si no existe ningún administrador
+  admin: {
+    correo: env('ADMIN_EMAIL').toLowerCase(),
+    nombre: env('ADMIN_NOMBRE', 'Administrador PATAS'),
+    hash: env('ADMIN_PASSWORD_HASH'), // recomendado: generado con «node dist/cli.js hash»
+    password: env('ADMIN_PASSWORD'),  // alternativa: en texto plano (bórrala del .env después del primer arranque)
+  },
+
+  // reCAPTCHA v3 de la entidad: las dos claves se crean en https://www.google.com/recaptcha/admin
+  recaptchaSiteKey: env('RECAPTCHA_SITE_KEY'),
+  recaptchaSecret: env('RECAPTCHA_SECRET_KEY'),
+  recaptchaMinimo: Number(env('RECAPTCHA_MIN_SCORE', '0.5')),
+  recaptchaUrl: env('RECAPTCHA_VERIFY_URL', 'https://www.google.com/recaptcha/api/siteverify'),
+
+  // Correo saliente: recuperación de contraseña y notificaciones
+  smtp: {
+    host: env('SMTP_HOST'),
+    puerto: Number(env('SMTP_PORT', '587')),
+    seguro: env('SMTP_SECURE', 'false') === 'true',
+    usuario: env('SMTP_USER'),
+    clave: env('SMTP_PASS'),
+    remitente: env('SMTP_FROM'),
+  },
+  // Correos de la entidad que reciben avisos (separados por coma)
+  notificaciones: env('NOTIFICACIONES_CORREO').split(',').map((c) => c.trim()).filter(Boolean),
+  // Dirección pública del sitio (https://...), usada en los enlaces de los correos
+  appUrl: env('APP_URL').replace(/\/+$/, ''),
+
+  whatsappBienestar: env('WHATSAPP_BIENESTAR').replace(/\D/g, ''),
+
+  // Datos de la entidad responsable (pie de página y política de privacidad)
+  entidad: {
+    nombre: env('ENTIDAD_NOMBRE', 'Alcaldía Municipal de Mosquera'),
+    dependencia: env('ENTIDAD_DEPENDENCIA', 'Secretaría de Ambiente – Dirección de Protección Animal'),
+    direccion: env('ENTIDAD_DIRECCION'),
+    correo: env('ENTIDAD_CORREO'),
+    telefono: env('ENTIDAD_TELEFONO'),
+    horario: env('ENTIDAD_HORARIO'),
+  },
+
+  // Mapas: Leaflet + OpenStreetMap por defecto (gratuito, sin clave). Satélite opcional.
+  mapa: {
+    tilesUrl: env('MAPA_TILES_URL'),
+    atribucion: env('MAPA_ATRIBUCION'),
+    sateliteUrl: env('MAPA_SATELITE_URL'),
+    sateliteAtribucion: env('MAPA_SATELITE_ATRIBUCION'),
+  },
 };

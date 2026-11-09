@@ -14,7 +14,11 @@ const ACCIONES: Record<string, string> = {
 declare global {
   interface Window { grecaptcha?: { ready(cb: () => void): void; execute(clave: string, o: { action: string }): Promise<string> } }
 }
-export interface ConfigPublica { recaptchaSiteKey: string; whatsappBienestar: string; recuperacionPorCorreo: boolean }
+export interface ConfigPublica {
+  recaptchaSiteKey: string; whatsappBienestar: string; recuperacionPorCorreo: boolean;
+  mapaTilesUrl?: string; mapaAtribucion?: string; mapaSateliteUrl?: string; mapaSateliteAtribucion?: string;
+  entidad?: { nombre: string; dependencia: string; direccion: string; correo: string; telefono: string; horario: string };
+}
 let configPublica: Promise<ConfigPublica> | null = null;
 /** Configuración pública del servidor (se pide una sola vez). */
 export function obtenerConfig(): Promise<ConfigPublica> {

@@ -72,7 +72,8 @@ export default function Header() {
               className="h-10 sm:h-11 max-w-[150px] sm:max-w-none w-auto object-contain transition-transform group-hover:scale-105"
               referrerPolicy="no-referrer"
             />
-            <div className="hidden sm:block">
+            {/* El logo ya dice «patas»: el nombre largo solo se muestra cuando sobra espacio */}
+            <div className="hidden sm:block lg:hidden 2xl:block">
               <div className="flex items-center gap-1.5">
                 <span className="font-black text-xl lg:text-2xl tracking-tight text-gray-900 font-heading">
                   PATAS
@@ -103,7 +104,7 @@ export default function Header() {
                 vistaActiva === 'servicios' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-emerald-600 hover:bg-gray-50'
               }`}
             >
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className="w-4 h-4 hidden 2xl:block" />
               Servicios
             </button>
             <button
@@ -113,7 +114,7 @@ export default function Header() {
                 vistaActiva === 'mascotas' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-emerald-600 hover:bg-gray-50'
               }`}
             >
-              <PawPrint className="w-4 h-4" />
+              <PawPrint className="w-4 h-4 hidden 2xl:block" />
               Mascotas
             </button>
             <button
@@ -123,7 +124,7 @@ export default function Header() {
                 vistaActiva === 'hogares' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-emerald-600 hover:bg-gray-50'
               }`}
             >
-              <Home className="w-4 h-4" />
+              <Home className="w-4 h-4 hidden 2xl:block" />
               Hogares
             </button>
             <button
@@ -133,7 +134,7 @@ export default function Header() {
                 vistaActiva === 'solicitudes' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-emerald-600 hover:bg-gray-50'
               }`}
             >
-              <ClipboardList className="w-4 h-4" />
+              <ClipboardList className="w-4 h-4 hidden 2xl:block" />
               {esGestor ? 'Solicitudes' : 'Mis solicitudes'}
               {solicitudesPendientes > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-500 text-white rounded-full">
@@ -148,7 +149,7 @@ export default function Header() {
                 vistaActiva === 'refugios_personas' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-emerald-600 hover:bg-gray-50'
               }`}
             >
-              <Building2 className="w-4 h-4" />
+              <Building2 className="w-4 h-4 hidden 2xl:block" />
               Refugios
             </button>
             <button
@@ -158,7 +159,7 @@ export default function Header() {
                 vistaActiva === 'mapa' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-emerald-600 hover:bg-gray-50'
               }`}
             >
-              <MapPin className="w-4 h-4" />
+              <MapPin className="w-4 h-4 hidden 2xl:block" />
               Mapa
             </button>
             {verPanel && (
@@ -169,7 +170,7 @@ export default function Header() {
                   vistaActiva === 'panel' ? 'text-emerald-700 bg-emerald-50 font-bold' : 'hover:text-emerald-600 hover:bg-gray-50'
                 }`}
               >
-                <LayoutDashboard className="w-4 h-4" />
+                <LayoutDashboard className="w-4 h-4 hidden 2xl:block" />
                 Panel
               </button>
             )}

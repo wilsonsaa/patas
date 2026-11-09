@@ -5,6 +5,8 @@ import { ErrorHttp, auditar, exigir } from '../auth.js';
 import { correo, documento, fechaOpc, fotoOpc, telefono, texto, tipoDoc, uuid, validar } from '../validar.js';
 import { nombrePublico } from './mascotas.js';
 import { captcha } from '../recaptcha.js';
+import { avisarEntidad, escapar as e, notificar } from '../correo.js';
+import { config } from '../config.js';
 
 export const RAZAS_MANEJO_ESPECIAL = [
   'American Staffordshire Terrier', 'Bullmastiff', 'Dóberman', 'Dogo Argentino', 'Dogo de Burdeos',
@@ -88,6 +90,11 @@ export default async function rutasTramites(app: FastifyInstance) {
     });
     await auditar(req, u.id, 'solicitud_creada', 'solicitudes', id);
     const [s] = await q(`${SQL_SOL} WHERE s.id=$1`, [id]);
+    notificar(req.log, s.correo, `Recibimos tu solicitud ${s.radicado}`, 'Solicitud de adopción radicada',
+      [`Hola ${e(s.nombre.split(' ')[0])}, recibimos tu postulación para adoptar a <strong>${e(s.m_nombre)}</strong>.`,
+        `Tu número de radicado es <strong>${s.radicado}</strong>. Te contactaremos para la entrevista y la visita.`],
+      { texto: 'Ver mis solicitudes', url: `${config.appUrl}/#/solicitudes` });
+    avisarEntidad(req.log, `Nueva solicitud de adopción ${s.radicado}`, [`${e(s.nombre)} se postuló para adoptar a <strong>${e(s.m_nombre)}</strong>.`], 'solicitudes');
     return reply.code(201).send(aSolicitud(s, true));
   });
 
@@ -122,6 +129,17 @@ export default async function rutasTramites(app: FastifyInstance) {
       }
     });
     await auditar(req, u.id, `solicitud_estado:${d.estado}`, 'solicitudes', id);
+    const [s] = await q(`${SQL_SOL} WHERE s.id=$1`, [id]);
+    const detalle: Record<string, string> = {
+      'En evaluación': 'Estamos revisando la información de tu hogar.',
+      'Entrevista agendada': `Tu entrevista quedó agendada${s.fecha_entrevista ? ` para: <strong>${e(s.fecha_entrevista)}</strong>` : ''}.`,
+      Aprobada: '¡Felicitaciones! Tu adopción fue aprobada. Te contactaremos para coordinar la entrega y las visitas de seguimiento.',
+      Rechazada: 'En esta ocasión la solicitud no fue aprobada. Puedes postularte para otros animales que esperan un hogar.',
+    };
+    if (detalle[d.estado])
+      notificar(req.log, s.correo, `Tu solicitud ${s.radicado}: ${d.estado}`, `Solicitud ${d.estado.toLowerCase()}`,
+        [`Hola ${e(s.nombre.split(' ')[0])}, tu solicitud para adoptar a <strong>${e(s.m_nombre)}</strong> cambió de estado.`, detalle[d.estado]],
+        { texto: 'Ver mi solicitud', url: `${config.appUrl}/#/solicitudes` });
     return { ok: true };
   });
 
@@ -154,6 +172,8 @@ export default async function rutasTramites(app: FastifyInstance) {
         d.senas, d.esterilizado, d.microchipNumero, d.foto, d.antirrabica, d.antirrabica ? d.antirrabicaFecha : null,
         d.antirrabicaLote, d.antirrabicaLaboratorio, d.otrasVacunas, d.desparasitacionFecha, d.veterinaria, d.observaciones]);
     await auditar(req, u.id, 'mascota_propia_registrada', 'mascotas_propias', r.id);
+    notificar(req.log, d.propCorreo || u.correo, `${d.nombre} quedó registrado · ${r.radicado}`, 'Mascota registrada',
+      [`Registramos a <strong>${e(d.nombre)}</strong> en el censo municipal de animales de compañía.`, `Radicado: <strong>${r.radicado}</strong>. Preséntalo en las jornadas de vacunación y esterilización.`]);
     return reply.code(201).send(r);
   });
 
@@ -189,6 +209,9 @@ export default async function rutasTramites(app: FastifyInstance) {
         d.residencia, d.destino, d.polizaTiene, d.polizaTiene ? d.polizaAseguradora : '', d.polizaTiene ? d.polizaNumero : '',
         d.polizaTiene ? d.polizaVigencia : null, d.vacunasVigentes, d.antirrabicaFecha]);
     await auditar(req, u.id, 'manejo_especial_radicado', 'manejo_especial', r.id);
+    notificar(req.log, d.propCorreo || u.correo, `Registro de manejo especial ${r.radicado}`, 'Registro radicado',
+      [`Recibimos el registro de <strong>${e(d.nombre)}</strong> (${e(d.raza)}).`, `Radicado: <strong>${r.radicado}</strong>. Te contactaremos para validar la póliza y el carné de vacunación.`]);
+    avisarEntidad(req.log, `Registro de manejo especial ${r.radicado}`, [`${e(d.propNombre)} registró a <strong>${e(d.nombre)}</strong> (${e(d.raza)}).`]);
     return reply.code(201).send(r);
   });
 
@@ -202,9 +225,12 @@ export default async function rutasTramites(app: FastifyInstance) {
     const u = await exigir(req, 'admin');
     const { id } = validar(z.object({ id: uuid }), req.params);
     const d = validar(z.object({ estado: z.enum(['Radicado', 'En revisión', 'Requiere ajustes', 'Aprobado']), notas: texto(1000).default('') }), req.body);
-    const r = await q('UPDATE manejo_especial SET estado=$1, notas=$2 WHERE id=$3 RETURNING id', [d.estado, d.notas, id]);
+    const r = await q(`UPDATE manejo_especial m SET estado=$1, notas=$2 FROM usuarios us WHERE m.id=$3 AND us.id = m.usuario_id
+      RETURNING m.radicado, m.nombre, COALESCE(NULLIF(m.prop_correo, ''), us.correo) AS correo`, [d.estado, d.notas, id]);
     if (!r.length) throw new ErrorHttp(404, 'Registro no encontrado.');
     await auditar(req, u.id, `manejo_especial:${d.estado}`, 'manejo_especial', id);
+    notificar(req.log, r[0].correo, `Registro ${r[0].radicado}: ${d.estado}`, `Registro ${d.estado.toLowerCase()}`,
+      [`El registro de manejo especial de <strong>${e(r[0].nombre)}</strong> ahora está: <strong>${d.estado}</strong>.`, ...(d.notas ? [e(d.notas)] : [])]);
     return { ok: true };
   });
 
@@ -218,6 +244,9 @@ export default async function rutasTramites(app: FastifyInstance) {
     const [r] = await q('INSERT INTO donaciones (radicado, nombre, telefono, correo, tipo, descripcion) VALUES ($1,$2,$3,$4,$5,$6) RETURNING radicado',
       [await radicado('DON'), d.nombre, d.telefono, d.correo, d.tipo, d.descripcion]);
     await auditar(req, null, 'donacion_registrada', 'donaciones', r.radicado);
+    avisarEntidad(req.log, `Nueva donación ${r.radicado}`, [`<strong>${e(d.nombre)}</strong> (${e(d.telefono)}) quiere donar: ${e(d.tipo)}.`, e(d.descripcion)]);
+    if (d.correo) notificar(req.log, d.correo, '¡Gracias por tu donación!', 'Registramos tu intención de donar',
+      [`Radicado <strong>${r.radicado}</strong>. La Dirección de Protección Animal te contactará para coordinar la entrega.`, 'PATAS no recibe dinero: solo donaciones en especie y voluntariado.']);
     return reply.code(201).send(r);
   });
 
@@ -251,10 +280,18 @@ export default async function rutasTramites(app: FastifyInstance) {
     const { id } = validar(z.object({ id: uuid }), req.params);
     const d = validar(z.object({ estado: z.enum(['pendiente', 'verificado', 'rechazado', 'suspendido']) }), req.body);
     await tx(async (c) => {
-      const r = await c.query("UPDATE lugares SET estado=$1 WHERE id=$2 AND tipo='hogar_paso' RETURNING usuario_id", [d.estado, id]);
+      const r = await c.query("UPDATE lugares SET estado=$1 WHERE id=$2 AND tipo='hogar_paso' RETURNING usuario_id, codigo", [d.estado, id]);
       if (!r.rowCount) throw new ErrorHttp(404, 'Hogar no encontrado.');
       const dueno = r.rows[0].usuario_id;
       if (!dueno) return;
+      const du = await c.query('SELECT correo, nombre FROM usuarios WHERE id=$1', [dueno]);
+      const texto: Record<string, string> = {
+        verificado: 'Tu hogar de paso fue <strong>verificado</strong>. Ya puedes ingresar y publicar a los animales que tengas a cargo.',
+        rechazado: 'Después de la revisión, tu inscripción como hogar de paso no fue aprobada.',
+        suspendido: 'Tu hogar de paso fue <strong>suspendido</strong> temporalmente. Comunícate con la Dirección de Protección Animal.',
+      };
+      if (texto[d.estado] && du.rows[0])
+        notificar(req.log, du.rows[0].correo, `Hogar de paso ${r.rows[0].codigo}: ${d.estado}`, `Hogar de paso ${r.rows[0].codigo}`, [texto[d.estado]], { texto: 'Ir a PATAS', url: `${config.appUrl}/` });
       if (d.estado === 'verificado')
         await c.query("UPDATE usuarios SET rol='hogar_paso', lugar_id=$1 WHERE id=$2 AND rol IN ('adoptante','hogar_paso')", [id, dueno]);
       else

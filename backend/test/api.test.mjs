@@ -30,10 +30,31 @@ const solicitud = (mascotaId) => ({
 const ana = cliente(), hogar = cliente(), admin = cliente(), anon = cliente();
 let mascotas, hogarId, codigoHogar, mascotaHogar;
 
+const MASCOTA_BASE = { especie: 'perro', raza: 'Criollo', edadCategoria: 'Joven', edadTexto: '2 años', genero: 'Macho', tamano: 'Mediano',
+  fotos: ['https://ejemplo.test/foto.jpg'], descripcion: 'Rescatado y listo para adopción.', temperamento: ['Noble'],
+  salud: { vacunado: true, esterilizado: true, desparasitado: true, microchip: false } };
+
+// La plataforma arranca vacía: el administrador crea el refugio y publica los primeros animales.
+test('preparación: el administrador inicial existe, crea un refugio y publica', async () => {
+  assert.ok(ADMIN.correo, 'define ADMIN_EMAIL y ADMIN_PASSWORD');
+  const login = await admin('POST', '/api/auth/login', ADMIN);
+  assert.equal(login.status, 200);
+  assert.equal(login.datos.rol, 'admin');
+  assert.equal((await anon('POST', '/api/admin/refugios', { nombre: 'X', direccion: 'Calle 1', capacidad: 5 })).status, 401);
+  const ref = await admin('POST', '/api/admin/refugios', { nombre: `Refugio prueba ${unico}`, direccion: 'Calle 2 # 3-4, Mosquera', capacidad: 20, lat: 4.7084, lng: -74.2302, telefono: '6010000000' });
+  assert.equal(ref.status, 201);
+  assert.match(ref.datos.codigo, /^REF-\d{4}$/);
+  for (const nombre of ['Lucas', 'Mila']) {
+    const r = await admin('POST', '/api/mascotas', { ...MASCOTA_BASE, nombre, hogarOrefugioId: ref.datos.id });
+    assert.equal(r.status, 201);
+  }
+  const pub = (await anon('GET', '/api/lugares')).datos.find((l) => l.id === ref.datos.id);
+  assert.equal(pub.direccion, 'Calle 2 # 3-4, Mosquera', 'la dirección de un refugio sí es pública');
+});
+
 test('lo público no expone datos de los hogares de paso', async () => {
   const { datos } = await anon('GET', '/api/lugares');
   const hogares = datos.filter((l) => l.tipo === 'hogar_paso');
-  assert.ok(hogares.length > 0);
   for (const h of hogares) {
     assert.match(h.nombre, /^Hogar de Paso HP-\d{4}$/);
     for (const campo of ['direccion', 'lat', 'lng', 'telefono', 'responsable', 'correo', 'sector'])
@@ -91,7 +112,6 @@ test('hogar de paso: queda pendiente con código y no puede publicar hasta ser v
 
 test('admin verifica el hogar; el hogar publica y respeta su capacidad', async (t) => {
   if (!ADMIN.correo) return t.skip('sin credenciales de admin');
-  assert.equal((await admin('POST', '/api/auth/login', ADMIN)).status, 200);
   const lista = (await admin('GET', '/api/admin/hogares')).datos;
   assert.equal(lista.find((h) => h.id === hogarId).direccion, 'Calle 1 # 2-3', 'el admin sí ve la dirección');
   assert.equal((await admin('PATCH', `/api/admin/hogares/${hogarId}`, { estado: 'verificado' })).status, 200);
@@ -230,4 +250,31 @@ test('recuperación de contraseña por enlace del administrador', async (t) => {
   assert.equal((await anon('POST', '/api/auth/restablecer', { token, password: 'OtraClave2026x' })).status, 400, 'el enlace es de un solo uso');
   assert.equal((await pedro('GET', '/api/auth/yo')).datos, null, 'la sesión anterior se cerró');
   assert.equal((await cliente()('POST', '/api/auth/login', { correo: registro('pedro').correo, password: 'NuevaClave2026' })).status, 200);
+});
+
+test('permisos: roles y reglas de integridad', async () => {
+  // registrarse nunca otorga un rol distinto a ciudadano, aunque se intente
+  const c = cliente();
+  const r = await c('POST', '/api/auth/registro', { ...registro('rol'), rol: 'admin' });
+  assert.equal(r.datos.rol, 'adoptante');
+  for (const [m, ruta] of [['GET', '/api/admin/usuarios'], ['GET', '/api/admin/refugios'], ['GET', '/api/gestion/adopciones'], ['GET', '/api/donaciones'], ['POST', '/api/mascotas']])
+    assert.equal((await c(m, ruta, m === 'POST' ? {} : undefined)).status, 403, `${m} ${ruta} debe estar prohibido para un ciudadano`);
+  // el administrador no puede quitarse a sí mismo el rol ni desactivarse
+  const yo = (await admin('GET', '/api/auth/yo')).datos;
+  assert.equal((await admin('PATCH', `/api/admin/usuarios/${yo.id}`, { rol: 'adoptante' })).status, 400);
+  // un gestor de refugio no administra usuarios ni refugios
+  await admin('PATCH', `/api/admin/usuarios/${r.datos.id}`, { rol: 'refugio_admin' });
+  assert.equal((await c('GET', '/api/auth/yo')).datos.rol, 'refugio_admin', 'el nuevo rol aplica de inmediato');
+  assert.equal((await c('GET', '/api/admin/usuarios')).status, 403);
+  assert.equal((await c('POST', '/api/admin/refugios', { nombre: 'X', direccion: 'Calle 1 2', capacidad: 2 })).status, 403);
+  assert.equal((await c('GET', '/api/gestion/adopciones')).status, 200);
+  // desactivar una cuenta cierra su sesión
+  await admin('PATCH', `/api/admin/usuarios/${r.datos.id}`, { activo: false });
+  assert.equal((await c('GET', '/api/auth/yo')).datos, null);
+  assert.equal((await cliente()('POST', '/api/auth/login', { correo: registro('rol').correo, password: 'ClaveSegura2026' })).status, 401);
+  // una mascota con adopción aprobada no se puede borrar ni volver a "Disponible" desde un hogar
+  if (mascotaHogar) {
+    assert.equal((await hogar('DELETE', `/api/mascotas/${mascotaHogar.id}`)).status, 409);
+    assert.equal((await hogar('PATCH', `/api/mascotas/${mascotaHogar.id}/estado`, { estado: 'Disponible' })).status, 409);
+  }
 });

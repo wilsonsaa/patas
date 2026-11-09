@@ -3,9 +3,11 @@ import { useTheme } from '../context/ThemeContext';
 import { PawPrint, Heart, Mail, Phone, MapPin, ShieldCheck } from 'lucide-react';
 import LogosAliados from './LogosAliados';
 import { IconoWhatsApp } from './BotonWhatsApp';
+import { useEntidad } from '../legal';
 
 export default function Footer() {
   const { config, setVistaActiva, setModalRegistroHogarAbierto, setModalDonarAbierto, whatsappBienestar } = useTheme();
+  const ent = useEntidad();
 
   return (
     <footer className="w-full bg-white border-t border-gray-200 mt-auto overflow-hidden">
@@ -132,15 +134,17 @@ export default function Footer() {
             <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">
               Líneas de Atención
             </h4>
-            <div className="space-y-3 text-xs text-gray-500">
-              {whatsappBienestar ? (
-                <a href={`https://wa.me/${whatsappBienestar}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-bold text-white bg-[#25D366] hover:brightness-95 px-3.5 py-2 rounded-xl">
+            <div className="space-y-2 text-xs text-gray-600">
+              {ent.dependencia && <p className="font-bold text-gray-800">{ent.dependencia}</p>}
+              {ent.direccion && <p className="flex items-start gap-1.5"><MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />{ent.direccion}</p>}
+              {ent.telefono && <p className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-emerald-600" />{ent.telefono}</p>}
+              {ent.correo && <a href={`mailto:${ent.correo}`} className="flex items-center gap-1.5 hover:text-emerald-700"><Mail className="w-3.5 h-3.5 text-emerald-600" />{ent.correo}</a>}
+              {ent.horario && <p className="text-[11px] text-gray-400">{ent.horario}</p>}
+              {whatsappBienestar && (
+                <a href={`https://wa.me/${whatsappBienestar}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-bold text-white bg-[#25D366] hover:brightness-95 px-3.5 py-2 rounded-xl mt-1">
                   <IconoWhatsApp className="w-4 h-4" /> Línea de bienestar animal
                 </a>
-              ) : (
-                <p>Dirección de Protección Animal · Alcaldía de Mosquera</p>
               )}
-              <p className="text-[11px] text-gray-400">Atención en horario de oficina • Mosquera, Cundinamarca</p>
             </div>
           </div>
         </div>

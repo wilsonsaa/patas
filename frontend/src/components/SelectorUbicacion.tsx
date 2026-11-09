@@ -1,14 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { LocateFixed, Loader2 } from 'lucide-react';
+import { useCapasMapa } from '../mapa';
 
 const MOSQUERA: [number, number] = [4.7060, -74.2300];
 // Límites aceptados por el servidor (zona de la Sabana alrededor de Mosquera)
 const LIMITES = { latMin: 4.3, latMax: 5.1, lngMin: -74.6, lngMax: -73.8 };
-const CAPAS = {
-  calles: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; colaboradores de OpenStreetMap' },
-  satelite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: 'Imágenes &copy; Esri' },
-};
 const icono = L.divIcon({
   className: '',
   html: '<div style="width:34px;height:34px;border-radius:50% 50% 50% 0;background:#e11d48;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><span style="transform:rotate(45deg);font-size:15px">🐾</span></div>',
@@ -29,6 +26,7 @@ export default function SelectorUbicacion({ valor, onChange, alto = 'h-72' }: {
   const alCambiar = useRef(onChange);
   alCambiar.current = onChange;
   const [tipo, setTipo] = useState<'calles' | 'satelite'>('calles');
+  const capas = useCapasMapa();
   const [buscando, setBuscando] = useState(false);
   const [aviso, setAviso] = useState('');
 
@@ -58,8 +56,9 @@ export default function SelectorUbicacion({ valor, onChange, alto = 'h-72' }: {
   useEffect(() => {
     if (!mapa.current) return;
     if (capa.current) mapa.current.removeLayer(capa.current);
-    capa.current = L.tileLayer(CAPAS[tipo].url, { attribution: CAPAS[tipo].attribution, maxZoom: 19 }).addTo(mapa.current);
-  }, [tipo]);
+    const c = (tipo === 'satelite' && capas.satelite) || capas.calles;
+    capa.current = L.tileLayer(c.url, { attribution: c.attribution, maxZoom: 19 }).addTo(mapa.current);
+  }, [tipo, capas]);
 
   const miUbicacion = () => {
     if (!navigator.geolocation) { setAviso('Este navegador no permite obtener la ubicación.'); return; }
@@ -77,13 +76,13 @@ export default function SelectorUbicacion({ valor, onChange, alto = 'h-72' }: {
         <button type="button" onClick={miUbicacion} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-lg cursor-pointer">
           {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />} Usar mi ubicación actual
         </button>
-        <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs font-bold">
+        {capas.satelite && <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs font-bold">
           {(['calles', 'satelite'] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTipo(t)} className={`px-3 py-2 cursor-pointer ${tipo === t ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600'}`}>
               {t === 'calles' ? 'Calles' : 'Satélite'}
             </button>
           ))}
-        </div>
+        </div>}
       </div>
       <div ref={contenedor} className={`${alto} w-full rounded-2xl overflow-hidden border border-gray-300 z-0`} aria-label="Mapa para marcar el lugar del hallazgo" />
       <p className="text-[11px] text-gray-500 mt-1.5">

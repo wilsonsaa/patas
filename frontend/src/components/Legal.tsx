@@ -1,13 +1,14 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { ShieldCheck, FileText } from 'lucide-react';
-import { LEGAL } from '../legal';
+import { LEGAL, o, useEntidad } from '../legal';
 
 const H = ({ children }: { children: React.ReactNode }) => <h2 className="text-xl font-black text-gray-900 font-heading mt-9 mb-2">{children}</h2>;
 const P = ({ children }: { children: React.ReactNode }) => <p className="text-[15px] text-gray-700 leading-relaxed mb-3">{children}</p>;
 const L = ({ children }: { children: React.ReactNode }) => <ul className="list-disc pl-5 space-y-1.5 text-[15px] text-gray-700 leading-relaxed mb-3">{children}</ul>;
 
 function Privacidad() {
+  const ent = useEntidad();
   return (
     <>
       <P>
@@ -17,9 +18,9 @@ function Privacidad() {
 
       <H>1. Responsable del tratamiento</H>
       <P>
-        <strong>{LEGAL.responsable}</strong><br />
-        {LEGAL.direccion}<br />
-        Correo: {LEGAL.correo} · Teléfono: {LEGAL.telefono}<br />
+        <strong>{o(ent.nombre)}{ent.dependencia ? ` – ${ent.dependencia}` : ''}</strong><br />
+        {o(ent.direccion)}<br />
+        Correo: {o(ent.correo)} · Teléfono: {o(ent.telefono)}<br />
         Encargado del tratamiento: {LEGAL.encargado}.
       </P>
 
@@ -72,7 +73,7 @@ function Privacidad() {
         <li>Presentar quejas ante la Superintendencia de Industria y Comercio, después de haber reclamado ante el responsable.</li>
       </L>
       <P>
-        Para ejercerlos escribe a {LEGAL.correo} indicando tu nombre, documento y la solicitud. Las <strong>consultas</strong> se responden en máximo
+        Para ejercerlos escribe a {o(ent.correo)} indicando tu nombre, documento y la solicitud. Las <strong>consultas</strong> se responden en máximo
         10 días hábiles y los <strong>reclamos</strong> en máximo 15 días hábiles, según los artículos 14 y 15 de la Ley 1581 de 2012. Tu nombre, teléfono y
         barrio también puedes corregirlos tú mismo en «Mi cuenta».
       </P>

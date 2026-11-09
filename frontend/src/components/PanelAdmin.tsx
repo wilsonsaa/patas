@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Home, PawPrint, ShieldAlert, HandHeart, Lock, LayoutDashboard, HeartHandshake, MapPinned, Users } from 'lucide-react';
+import { Home, PawPrint, ShieldAlert, HandHeart, Lock, LayoutDashboard, HeartHandshake, MapPinned, Users, Building2 } from 'lucide-react';
 import PanelAdopciones from './PanelAdopciones';
 import PanelHallazgos from './PanelHallazgos';
 import PanelUsuarios from './PanelUsuarios';
+import PanelRefugios from './PanelRefugios';
 import { api } from '../api';
 
 type Fila = Record<string, any>;
 type Tabla = 'hogares' | 'mascotas' | 'especial' | 'donaciones';
-type Pestana = Tabla | 'adopciones' | 'hallazgos' | 'usuarios';
+type Pestana = Tabla | 'adopciones' | 'hallazgos' | 'usuarios' | 'refugios';
 const fecha = (f?: string) => (f ? new Date(f).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 const claseSelect = 'text-xs font-bold p-1.5 rounded-lg border border-gray-300 bg-white';
 
@@ -51,6 +52,7 @@ export default function PanelAdmin() {
     ['mascotas', 'Mascotas registradas', PawPrint, 0, !esHogar],
     ['especial', 'Manejo especial', ShieldAlert, datos.especial.filter((r) => r.estado === 'Radicado').length, esAdmin],
     ['donaciones', 'Donaciones', HandHeart, datos.donaciones.filter((d) => d.estado === 'Nueva').length, !esHogar],
+    ['refugios', 'Refugios', Building2, 0, esAdmin],
     ['usuarios', 'Usuarios', Users, 0, esAdmin],
   ] as const).filter((p) => p[4]);
 
@@ -82,7 +84,8 @@ export default function PanelAdmin() {
       {pestana === 'adopciones' && <PanelAdopciones />}
       {pestana === 'hallazgos' && <PanelHallazgos />}
       {pestana === 'usuarios' && <PanelUsuarios />}
-      {pestana !== 'adopciones' && pestana !== 'hallazgos' && pestana !== 'usuarios' && (
+      {pestana === 'refugios' && <PanelRefugios />}
+      {pestana !== 'adopciones' && pestana !== 'hallazgos' && pestana !== 'usuarios' && pestana !== 'refugios' && (
       <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-x-auto">
         {cargando ? <p className="p-8 text-sm text-gray-500">Cargando…</p> : datos[pestana as Tabla].length === 0 ? <p className="p-8 text-sm text-gray-500">No hay registros todavía.</p> : (
           <table className="w-full text-left text-xs">

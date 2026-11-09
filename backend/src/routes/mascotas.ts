@@ -4,6 +4,7 @@ import { q } from '../db.js';
 import { ErrorHttp, auditar, exigir, usuarioDe } from '../auth.js';
 import { foto, telefono, texto, uuid, validar } from '../validar.js';
 import { captcha } from '../recaptcha.js';
+import { avisarEntidad, escapar as e } from '../correo.js';
 
 const MUNICIPIO = 'Mosquera, Cundinamarca';
 export const nombrePublico = (l: { tipo: string; codigo: string; nombre: string }) =>
@@ -112,6 +113,9 @@ export default async function rutasMascotas(app: FastifyInstance) {
   app.patch('/api/mascotas/:id/estado', async (req) => {
     const { u, id } = await mascotaGestionable(req);
     const d = validar(z.object({ estado: z.enum(['Disponible', 'En proceso', 'Adoptado']) }), req.body);
+    const aprobada = await q("SELECT 1 FROM solicitudes WHERE mascota_id=$1 AND estado='Aprobada'", [id]);
+    if (aprobada.length && d.estado !== 'Adoptado' && u.rol !== 'admin')
+      throw new ErrorHttp(409, 'Esta mascota tiene una adopción aprobada. Solo la administración puede cambiar su estado.');
     await q('UPDATE mascotas SET estado=$1 WHERE id=$2', [d.estado, id]);
     await auditar(req, u.id, `mascota_estado:${d.estado}`, 'mascotas', id);
     return { ok: true };
@@ -134,6 +138,9 @@ export default async function rutasMascotas(app: FastifyInstance) {
 
   app.delete('/api/mascotas/:id', async (req) => {
     const { u, id } = await mascotaGestionable(req);
+    // con solicitudes activas o una adopción aprobada, borrarla eliminaría el historial: se debe cambiar su estado
+    const activas = await q("SELECT 1 FROM solicitudes WHERE mascota_id=$1 AND estado <> 'Rechazada' LIMIT 1", [id]);
+    if (activas.length) throw new ErrorHttp(409, 'No se puede retirar: tiene solicitudes de adopción activas o aprobadas. Cambia su estado en su lugar.');
     await q('DELETE FROM mascotas WHERE id=$1', [id]);
     await auditar(req, u.id, 'mascota_eliminada', 'mascotas', id);
     return { ok: true };
@@ -157,6 +164,7 @@ export default async function rutasMascotas(app: FastifyInstance) {
        RETURNING id, codigo, estado`,
       [d.nombre, d.responsable, d.telefono, u.correo, d.sector, d.direccion, d.descripcion, d.capacidad, d.horario, u.id]);
     await auditar(req, u.id, 'hogar_inscrito', 'lugares', l.id);
+    avisarEntidad(req.log, `Nuevo hogar de paso ${l.codigo} por verificar`, [`${e(d.responsable)} (${e(d.telefono)}) inscribió un hogar en el sector ${e(d.sector)} con capacidad para ${d.capacidad} animales.`, 'Programa la visita de verificación desde el panel.']);
     return reply.code(201).send(l);
   });
 

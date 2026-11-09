@@ -22,11 +22,15 @@ export class ErrorHttp extends Error {
 export async function hashPassword(password: string): Promise<string> {
   const sal = randomBytes(16);
   const h = await scryptAsync(password.normalize('NFKC'), sal, 64, SCRYPT);
-  return `scrypt$${sal.toString('base64')}$${h.toString('base64')}`;
+  // separador «:» para que el hash pueda ir en un archivo .env sin escapar caracteres «$»
+  return `scrypt:${sal.toString('base64')}:${h.toString('base64')}`;
 }
 
+/** Comprueba que un texto tenga forma de hash válido de PATAS. */
+export const esHashValido = (h: string) => /^scrypt[:$][A-Za-z0-9+/=]{20,}[:$][A-Za-z0-9+/=]{80,}$/.test(h);
+
 export async function verificarPassword(password: string, guardado: string): Promise<boolean> {
-  const [alg, sal, hash] = guardado.split('$');
+  const [alg, sal, hash] = guardado.split(/[:$]/); // acepta también el formato anterior «scrypt$…»
   if (alg !== 'scrypt' || !sal || !hash) return false;
   const esperado = Buffer.from(hash, 'base64');
   const h = await scryptAsync(password.normalize('NFKC'), Buffer.from(sal, 'base64'), esperado.length, SCRYPT);

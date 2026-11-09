@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { useTheme } from '../context/ThemeContext';
 import { api } from '../api';
+import { obtenerCapas } from '../mapa';
 
 interface Punto { id: string; nombre: string; especie: string; estado: string; foto: string | null; lat: number; lng: number; fecha: string | null; referencia: string; lugar_codigo: string; lugar_tipo: string; lugar_nombre: string }
 const esc = (t: unknown) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
@@ -21,7 +22,8 @@ export default function PanelHallazgos() {
   useEffect(() => {
     if (!contenedor.current) return;
     mapa.current = L.map(contenedor.current).setView([4.706, -74.23], 14);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; colaboradores de OpenStreetMap', maxZoom: 19 }).addTo(mapa.current);
+    const m = mapa.current;
+    obtenerCapas().then((c) => { if (mapa.current === m) L.tileLayer(c.calles.url, { attribution: c.calles.attribution, maxZoom: 19 }).addTo(m); });
     return () => { mapa.current?.remove(); mapa.current = null; };
   }, []);
 

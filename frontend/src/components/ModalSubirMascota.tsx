@@ -30,7 +30,7 @@ export default function ModalSubirMascota() {
     e.preventDefault();
     if (!f.foto) return setError('Sube al menos una foto de la mascota.');
     const hogarOrefugioId = esHogar ? undefined : (f.hogarId || refugios[0]?.id);
-    if (!esHogar && !hogarOrefugioId) return setError('No hay refugios u hogares verificados donde publicar.');
+    if (!esHogar && !hogarOrefugioId) return setError('Aún no hay refugios ni hogares verificados. Crea primero un refugio en Panel > Refugios.');
     if (conHallazgo && !punto) return setError('Marca en el mapa dónde se encontró al animal, o responde «No» a esa pregunta.');
     setError(''); setEnviando(true);
     const ok = await addPet({

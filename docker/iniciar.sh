@@ -32,12 +32,23 @@ postgres -D "$PGDATA" -c listen_addresses='' -c unix_socket_directories="$PGHOST
 PG_PID=$!
 
 i=0
-until pg_isready -q -h "$PGHOST"; do
+until pg_isready -q -h "$PGHOST" -d postgres; do
   i=$((i + 1))
   if [ "$i" -gt 60 ] || ! kill -0 "$PG_PID" 2>/dev/null; then echo "ERROR: PostgreSQL no arrancó." >&2; exit 1; fi
   sleep 1
 done
 [ -z "${NUEVA:-}" ] || createdb -h "$PGHOST" -U "$PGUSER" "$PGDATABASE"
+
+# Contraseña de la base de datos (DB_PASSWORD en el .env, llega como PGPASSWORD).
+# La primera vez se asigna al usuario de PostgreSQL y desde ese momento toda conexión la exige.
+if [ -n "${PGPASSWORD:-}" ] && grep -Eq '^local[[:space:]].*trust' "$PGDATA/pg_hba.conf"; then
+  printf 'ALTER ROLE "%s" WITH PASSWORD :'"'"'clave'"'"';\n' "$PGUSER" | psql -q -h "$PGHOST" -U "$PGUSER" -d postgres -v ON_ERROR_STOP=1 -v clave="$PGPASSWORD" >/dev/null
+  sed -i -E 's/^(local[[:space:]].*)trust[[:space:]]*$/\1scram-sha-256/' "$PGDATA/pg_hba.conf"
+  pg_ctl reload -D "$PGDATA" >/dev/null
+  echo "Contraseña de la base de datos configurada."
+elif [ -z "${PGPASSWORD:-}" ]; then
+  echo "AVISO: DB_PASSWORD no está definida; la base de datos solo está protegida por estar dentro del contenedor." >&2
+fi
 
 node "${APP_DIR:-/app}/dist/server.js" &
 APP_PID=$!

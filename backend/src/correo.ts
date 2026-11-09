@@ -34,3 +34,27 @@ export async function enviarCorreo(log: FastifyBaseLogger, para: string, asunto:
   }
 }
 export { escapar };
+
+/** Correo de prueba (consola de administración). Lanza el error del servidor SMTP si falla. */
+export async function probarCorreo(destino: string) {
+  await transporte().sendMail({
+    from: config.smtp.remitente, to: destino, subject: 'PATAS · correo de prueba',
+    html: plantilla('El correo de PATAS funciona', ['Si recibiste este mensaje, la configuración SMTP de la plataforma es correcta.'], { texto: 'Abrir PATAS', url: `${config.appUrl}/` }),
+    text: 'Si recibiste este mensaje, la configuración SMTP de PATAS es correcta.',
+  });
+}
+
+/**
+ * Notificaciones: se envían en segundo plano para no demorar la respuesta al usuario.
+ * Si el correo no está configurado simplemente no se envían.
+ */
+export function notificar(log: FastifyBaseLogger, para: string | string[], asunto: string, titulo: string, parrafos: string[], boton?: { texto: string; url: string }) {
+  const destinos = (Array.isArray(para) ? para : [para]).filter(Boolean);
+  if (!correoActivo() || !destinos.length) return;
+  for (const d of destinos) void enviarCorreo(log, d, asunto, titulo, parrafos, boton);
+}
+
+/** Aviso a los correos de la entidad (NOTIFICACIONES_CORREO). */
+export function avisarEntidad(log: FastifyBaseLogger, asunto: string, parrafos: string[], seccion = 'panel') {
+  notificar(log, config.notificaciones, `PATAS · ${asunto}`, asunto, parrafos, { texto: 'Abrir el panel', url: `${config.appUrl}/#/${seccion}` });
+}

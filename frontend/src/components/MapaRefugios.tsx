@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../context/ThemeContext';
+import { useCapasMapa } from '../mapa';
 import { RefugioHogar } from '../types';
 import {
   MapPin,
@@ -20,28 +21,6 @@ import {
   Compass
 } from 'lucide-react';
 
-// Capas de mapa con licencia de uso abierta (Esri World Imagery y OpenStreetMap)
-const GOOGLE_LAYERS = {
-  hibrido: {
-    nombre: 'Satélite',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Imágenes &copy; Esri, Maxar, Earthstar Geographics',
-    icono: '🛰️'
-  },
-  satelite: {
-    nombre: 'Relieve',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-    attribution: '&copy; Esri y colaboradores',
-    icono: '🌍'
-  },
-  calles: {
-    nombre: 'Calles',
-    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; colaboradores de OpenStreetMap',
-    icono: '🗺️'
-  }
-};
-
 // Los textos se insertan en HTML del mapa: siempre escapados.
 const esc = (t: unknown) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
@@ -57,7 +36,9 @@ export default function MapaRefugios() {
   const [filtro, setFiltro] = useState<'todos' | 'refugio' | 'hogar_paso'>('todos');
   const [lugarSeleccionado, setLugarSeleccionado] = useState<RefugioHogar | null>(null);
   const [pantallaCompleta, setPantallaCompleta] = useState(false);
-  const [tipoCapa, setTipoCapa] = useState<'hibrido' | 'satelite' | 'calles'>('hibrido');
+  const [tipoCapa, setTipoCapa] = useState<'satelite' | 'calles'>('calles');
+  const capas = useCapasMapa();
+  const capaActual = (tipoCapa === 'satelite' && capas.satelite) || capas.calles;
   const [ubicacionUsuario, setUbicacionUsuario] = useState<[number, number] | null>(null);
   const [buscandoGps, setBuscandoGps] = useState(false);
 
@@ -81,9 +62,9 @@ export default function MapaRefugios() {
       });
 
       // Capa inicial de Google Satelital Híbrido
-      const initialLayer = L.tileLayer(GOOGLE_LAYERS[tipoCapa].url, {
+      const initialLayer = L.tileLayer(capaActual.url, {
         maxZoom: 20,
-        attribution: GOOGLE_LAYERS[tipoCapa].attribution
+        attribution: capaActual.attribution
       }).addTo(map);
 
       tileLayerRef.current = initialLayer;
@@ -114,13 +95,13 @@ export default function MapaRefugios() {
       map.removeLayer(tileLayerRef.current);
     }
 
-    const nuevaCapa = L.tileLayer(GOOGLE_LAYERS[tipoCapa].url, {
+    const nuevaCapa = L.tileLayer(capaActual.url, {
       maxZoom: 20,
-      attribution: GOOGLE_LAYERS[tipoCapa].attribution
+      attribution: capaActual.attribution
     }).addTo(map);
 
     tileLayerRef.current = nuevaCapa;
-  }, [tipoCapa]);
+  }, [tipoCapa, capas]);
 
   // Manejar cambio de tamaño (Resize / Pantalla Completa)
   useEffect(() => {
@@ -366,17 +347,7 @@ export default function MapaRefugios() {
                 <span className="text-[10px] font-bold text-emerald-400 px-2 flex items-center gap-1">
                   <Layers className="w-3 h-3" /> Capa:
                 </span>
-                <button
-                  onClick={() => setTipoCapa('hibrido')}
-                  className={`text-[11px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
-                    tipoCapa === 'hibrido'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-gray-300 hover:text-white'
-                  }`}
-                  title="Imágenes satelitales"
-                >
-                  🛰️ Satélite
-                </button>
+                {capas.satelite && (
                 <button
                   onClick={() => setTipoCapa('satelite')}
                   className={`text-[11px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer ${
@@ -384,10 +355,11 @@ export default function MapaRefugios() {
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-gray-300 hover:text-white'
                   }`}
-                  title="Mapa topográfico"
+                  title="Imágenes satelitales"
                 >
-                  🌍 Relieve
+                  🛰️ Satélite
                 </button>
+                )}
                 <button
                   onClick={() => setTipoCapa('calles')}
                   className={`text-[11px] font-bold px-2.5 py-1 rounded-xl transition-all cursor-pointer ${

@@ -1,12 +1,12 @@
 # PATAS · imagen única: PostgreSQL + API + aplicación web en un solo contenedor.
-FROM node:22-alpine AS web
+FROM node:22-alpine3.24 AS web
 WORKDIR /web
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM node:22-alpine AS api
+FROM node:22-alpine3.24 AS api
 WORKDIR /api
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci
@@ -14,7 +14,7 @@ COPY backend/tsconfig.json ./
 COPY backend/src ./src
 RUN npm run build && npm prune --omit=dev
 
-FROM node:22-alpine
+FROM node:22-alpine3.24
 RUN apk add --no-cache postgresql17 tini \
  && addgroup -S patas && adduser -S -G patas -h /app patas \
  && mkdir -p /data && chown patas:patas /data
