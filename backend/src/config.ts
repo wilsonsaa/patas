@@ -60,6 +60,9 @@ export const config = {
     correo: env('ENTIDAD_CORREO'),
     telefono: env('ENTIDAD_TELEFONO'),
     horario: env('ENTIDAD_HORARIO'),
+    // ubicación de la oficina de atención (se muestra en el mapa público)
+    lat: Number(env('ENTIDAD_LAT')) || null,
+    lng: Number(env('ENTIDAD_LNG')) || null,
   },
 
   // Mapas: Leaflet + OpenStreetMap por defecto (gratuito, sin clave). Satélite opcional.

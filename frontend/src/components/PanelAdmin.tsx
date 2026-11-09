@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Home, PawPrint, ShieldAlert, HandHeart, Lock, LayoutDashboard, HeartHandshake, MapPinned, Users, Building2 } from 'lucide-react';
+import { Home, PawPrint, ShieldAlert, HandHeart, Lock, LayoutDashboard, HeartHandshake, MapPinned, Users, Building2, Siren } from 'lucide-react';
 import PanelAdopciones from './PanelAdopciones';
 import PanelHallazgos from './PanelHallazgos';
 import PanelUsuarios from './PanelUsuarios';
 import PanelRefugios from './PanelRefugios';
+import PanelReportes from './PanelReportes';
 import { api } from '../api';
 
 type Fila = Record<string, any>;
 type Tabla = 'hogares' | 'mascotas' | 'especial' | 'donaciones';
-type Pestana = Tabla | 'adopciones' | 'hallazgos' | 'usuarios' | 'refugios';
+type Pestana = Tabla | 'adopciones' | 'hallazgos' | 'usuarios' | 'refugios' | 'reportes';
 const fecha = (f?: string) => (f ? new Date(f).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 const claseSelect = 'text-xs font-bold p-1.5 rounded-lg border border-gray-300 bg-white';
 
@@ -18,7 +19,7 @@ export default function PanelAdmin() {
   const { esAdmin, usuarioActivo, addToast, recargar } = useTheme();
   const esHogar = usuarioActivo.rol === 'hogar_paso';
   const puedeVer = esAdmin || usuarioActivo.rol === 'refugio_admin' || esHogar;
-  const [pestana, setPestana] = useState<Pestana>('adopciones');
+  const [pestana, setPestana] = useState<Pestana>(usuarioActivo.rol === 'hogar_paso' ? 'adopciones' : 'reportes');
   const [datos, setDatos] = useState<Record<Tabla, Fila[]>>({ hogares: [], mascotas: [], especial: [], donaciones: [] });
   const [cargando, setCargando] = useState(true);
 
@@ -46,6 +47,7 @@ export default function PanelAdmin() {
   };
 
   const pestanas = ([
+    ['reportes', 'Reportes de abandono', Siren, 0, !esHogar],
     ['adopciones', 'Seguimiento de adopciones', HeartHandshake, 0, true],
     ['hallazgos', 'Mapa de hallazgos', MapPinned, 0, true],
     ['hogares', 'Hogares de paso', Home, datos.hogares.filter((h) => h.estado === 'pendiente').length, esAdmin],
@@ -85,7 +87,8 @@ export default function PanelAdmin() {
       {pestana === 'hallazgos' && <PanelHallazgos />}
       {pestana === 'usuarios' && <PanelUsuarios />}
       {pestana === 'refugios' && <PanelRefugios />}
-      {pestana !== 'adopciones' && pestana !== 'hallazgos' && pestana !== 'usuarios' && pestana !== 'refugios' && (
+      {pestana === 'reportes' && <PanelReportes />}
+      {pestana !== 'adopciones' && pestana !== 'hallazgos' && pestana !== 'usuarios' && pestana !== 'refugios' && pestana !== 'reportes' && (
       <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-x-auto">
         {cargando ? <p className="p-8 text-sm text-gray-500">Cargando…</p> : datos[pestana as Tabla].length === 0 ? <p className="p-8 text-sm text-gray-500">No hay registros todavía.</p> : (
           <table className="w-full text-left text-xs">

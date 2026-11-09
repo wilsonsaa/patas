@@ -6,7 +6,7 @@ import { IconoWhatsApp } from './BotonWhatsApp';
 import { useEntidad } from '../legal';
 
 export default function Footer() {
-  const { config, setVistaActiva, setModalRegistroHogarAbierto, setModalDonarAbierto, whatsappBienestar } = useTheme();
+  const { config, setVistaActiva, setModalRegistroHogarAbierto, setModalDonarAbierto, setModalReportarAbierto, whatsappBienestar } = useTheme();
   const ent = useEntidad();
 
   return (
@@ -87,6 +87,11 @@ export default function Footer() {
               <li>
                 <button onClick={() => { setVistaActiva('servicios'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-emerald-700 transition-colors">
                   🗂️ Servicios y trámites
+                </button>
+              </li>
+              <li>
+                <button onClick={() => setModalReportarAbierto(true)} className="hover:text-emerald-700 transition-colors">
+                  🚨 Reportar animal abandonado
                 </button>
               </li>
               <li>

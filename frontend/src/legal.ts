@@ -10,7 +10,7 @@ export const LEGAL = {
 };
 
 const PENDIENTE = '(pendiente de configurar)';
-export interface Entidad { nombre: string; dependencia: string; direccion: string; correo: string; telefono: string; horario: string }
+export interface Entidad { nombre: string; dependencia: string; direccion: string; correo: string; telefono: string; horario: string; lat?: number | null; lng?: number | null }
 
 export function useEntidad(): Entidad {
   const [e, setE] = useState<Entidad>({ nombre: '', dependencia: '', direccion: '', correo: '', telefono: '', horario: '' });

@@ -59,6 +59,15 @@ function FormRefugio({ refugio, onClose, onGuardado }: { refugio: Refugio | null
   const [f, setF] = useState(refugio ? { nombre: refugio.nombre, responsable: refugio.responsable, telefono: refugio.telefono, correo: refugio.correo, sector: refugio.sector,
     direccion: refugio.direccion, descripcion: refugio.descripcion, capacidad: refugio.capacidad, horario: refugio.horario, estado: refugio.estado } : VACIO);
   const [punto, setPunto] = useState<{ lat: number; lng: number } | null>(refugio?.lat != null && refugio.lng != null ? { lat: refugio.lat, lng: refugio.lng } : null);
+  const [coord, setCoord] = useState({ lat: punto ? String(punto.lat) : '', lng: punto ? String(punto.lng) : '' });
+  // Coordenadas escritas a mano: acepta «4.724340, -74.246247» pegado completo en el campo de latitud
+  const cambiarCoord = (k: 'lat' | 'lng', v: string) => {
+    const par = v.split(',').map((x) => x.trim());
+    const nuevo = k === 'lat' && par.length === 2 ? { lat: par[0], lng: par[1] } : { ...coord, [k]: v };
+    setCoord(nuevo);
+    const lat = Number(nuevo.lat), lng = Number(nuevo.lng);
+    if (nuevo.lat && nuevo.lng && Number.isFinite(lat) && Number.isFinite(lng)) setPunto({ lat, lng });
+  };
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
@@ -91,7 +100,11 @@ function FormRefugio({ refugio, onClose, onGuardado }: { refugio: Refugio | null
           <Campo etiqueta="Descripción" ancho><textarea rows={2} maxLength={1000} value={f.descripcion} onChange={set('descripcion')} className={claseInput} /></Campo>
         </Seccion>
         <Seccion titulo="Ubicación en el mapa">
-          <SelectorUbicacion valor={punto} onChange={setPunto} />
+          <Campo etiqueta="Latitud" ayuda="Puedes pegar las coordenadas o marcar el punto en el mapa.">
+            <input inputMode="decimal" value={coord.lat} onChange={(e) => cambiarCoord('lat', e.target.value)} className={claseInput} placeholder="4.724340" />
+          </Campo>
+          <Campo etiqueta="Longitud"><input inputMode="decimal" value={coord.lng} onChange={(e) => cambiarCoord('lng', e.target.value)} className={claseInput} placeholder="-74.246247" /></Campo>
+          <SelectorUbicacion valor={punto} onChange={(p) => { setPunto(p); setCoord({ lat: String(p.lat), lng: String(p.lng) }); }} />
         </Seccion>
         <BotonesFormulario onCancelar={onClose} texto="Guardar refugio" enviando={enviando} icono={<Save className="w-4 h-4" />} />
       </form>

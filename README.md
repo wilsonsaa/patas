@@ -16,6 +16,9 @@ docker compose up -d --build
 **La guía completa para la entidad está en [DESPLIEGUE.md](DESPLIEGUE.md)**: variables de entorno, administrador
 inicial, reCAPTCHA, correo, HTTPS, roles y permisos, copias de seguridad y solución de problemas.
 
+¿Solo quieres probar la imagen ya construida? Usa la carpeta [`produccion/`](produccion/LEEME.md): `docker load` y
+`docker compose up -d`, sin compilar nada.
+
 La plataforma arranca vacía (sin datos de ejemplo) y no contiene claves en el código.
 
 ## Estructura
@@ -23,6 +26,8 @@ La plataforma arranca vacía (sin datos de ejemplo) y no contiene claves en el c
 | Ruta | Contenido |
 |---|---|
 | `Dockerfile` | Imagen única: compila la web y la API, e instala PostgreSQL 17. |
+| `produccion/` | Imagen lista para cargar (`patas-1.5.tar.gz`, no se sube a git), su `docker-compose.yml` y `LEEME.md`. |
+| `.github/workflows/imagen.yml` | Construye y publica la imagen en GitHub Container Registry al crear una etiqueta `v*`. |
 | `DESPLIEGUE.md` | Guía de despliegue y operación para la entidad. |
 | `.env.example` | Plantilla de configuración: todas las claves y datos de la entidad. |
 | `docker/iniciar.sh` | Arranque: crea la base la primera vez, levanta PostgreSQL (solo socket local) y la API. |
@@ -31,6 +36,9 @@ La plataforma arranca vacía (sin datos de ejemplo) y no contiene claves en el c
 
 ## Qué hace
 
+- **Reportar un animal abandonado o herido** (sin cuenta): la persona marca el punto en el mapa o usa su ubicación,
+  adjunta una foto y recibe un radicado `RAB-…`, el mapa de lo que envió y un botón de WhatsApp a la Dirección con el
+  radicado y el enlace de Google Maps ya escritos. La Dirección los atiende en Panel > Reportes (mapa, estados y notas).
 - **Adopción**: galería de mascotas, hoja de vida, solicitud con radicado y seguimiento del estado.
 - **Hogares de paso**: inscripción con visita de verificación. Públicamente solo existe un código (`HP-0001`).
 - **Registro de mascota propia**: datos del propietario, de la mascota y de vacunación.
@@ -41,6 +49,7 @@ La plataforma arranca vacía (sin datos de ejemplo) y no contiene claves en el c
   coordenada es interna (Panel > Mapa de hallazgos); en la hoja de vida solo se publica la referencia escrita.
 - **Recuperar contraseña o usuario**: por correo si hay SMTP configurado; si no, el administrador genera un enlace de un
   solo uso en Panel > Usuarios y lo envía por WhatsApp.
+- **Mapa público**: refugios y la oficina de la Dirección (`ENTIDAD_LAT`/`ENTIDAD_LNG`). Los hogares de paso nunca aparecen.
 - **WhatsApp de la línea de bienestar animal**: botón flotante y en el pie, con `WHATSAPP_BIENESTAR`.
 - **Panel institucional**: refugios, usuarios y roles, verificación de hogares, solicitudes, seguimiento, registros y donaciones.
 - **Notificaciones por correo** a la ciudadanía y a la entidad (ver DESPLIEGUE.md, paso 7).
@@ -49,10 +58,10 @@ La plataforma arranca vacía (sin datos de ejemplo) y no contiene claves en el c
 
 | Rol | Puede |
 |---|---|
-| Visitante | Ver mascotas, refugios, mapa; registrar una donación. |
+| Visitante | Ver mascotas, refugios, mapa; reportar un animal abandonado; registrar una donación. |
 | Ciudadano (`adoptante`) | Postularse a adopciones, registrar mascotas, inscribir un hogar, ver sus trámites. |
 | Hogar de paso verificado | Publicar mascotas de su hogar y gestionar sus solicitudes (sin ver la cédula). |
-| Gestor de refugio (`refugio_admin`) | Gestionar todas las mascotas y solicitudes, ver registros y donaciones. |
+| Gestor de refugio (`refugio_admin`) | Gestionar todas las mascotas, solicitudes y reportes; ver registros y donaciones. |
 | Administrador (`admin`) | Control total: usuarios y roles, refugios, verificación de hogares y sus datos reservados. |
 
 Los roles se asignan desde Panel > Usuarios. Matriz completa de permisos: DESPLIEGUE.md, paso 10.

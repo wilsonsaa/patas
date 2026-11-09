@@ -16,8 +16,8 @@ export const dentroDeLimites = (lat: number, lng: number) =>
   lat >= LIMITES.latMin && lat <= LIMITES.latMax && lng >= LIMITES.lngMin && lng <= LIMITES.lngMax;
 
 /** Mapa para marcar el punto exacto: clic o arrastrar el marcador, o usar la ubicación del celular. */
-export default function SelectorUbicacion({ valor, onChange, alto = 'h-72' }: {
-  valor: { lat: number; lng: number } | null; onChange: (p: { lat: number; lng: number }) => void; alto?: string;
+export default function SelectorUbicacion({ valor, onChange, alto = 'h-72', soloLectura = false }: {
+  valor: { lat: number; lng: number } | null; onChange: (p: { lat: number; lng: number }) => void; alto?: string; soloLectura?: boolean;
 }) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<L.Map | null>(null);
@@ -35,7 +35,7 @@ export default function SelectorUbicacion({ valor, onChange, alto = 'h-72' }: {
     if (!dentroDeLimites(lat, lng)) { setAviso('Ese punto está fuera de la zona de Mosquera y alrededores.'); return; }
     setAviso('');
     if (!marcador.current) {
-      marcador.current = L.marker([lat, lng], { icon: icono, draggable: true, keyboard: true }).addTo(mapa.current);
+      marcador.current = L.marker([lat, lng], { icon: icono, draggable: !soloLectura, keyboard: true }).addTo(mapa.current);
       marcador.current.on('dragend', () => { const p = marcador.current!.getLatLng(); poner(p.lat, p.lng); });
     } else marcador.current.setLatLng([lat, lng]);
     if (centrar) mapa.current.setView([lat, lng], 17);
@@ -45,13 +45,22 @@ export default function SelectorUbicacion({ valor, onChange, alto = 'h-72' }: {
   useEffect(() => {
     if (!contenedor.current || mapa.current) return;
     mapa.current = L.map(contenedor.current, { zoomControl: true, attributionControl: true }).setView(valor ? [valor.lat, valor.lng] : MOSQUERA, valor ? 16 : 14);
-    mapa.current.on('click', (e: L.LeafletMouseEvent) => poner(e.latlng.lat, e.latlng.lng));
+    if (!soloLectura) mapa.current.on('click', (e: L.LeafletMouseEvent) => poner(e.latlng.lat, e.latlng.lng));
     if (valor) poner(valor.lat, valor.lng);
     // el mapa vive dentro de una ventana emergente: recalcula su tamaño cuando termina de abrirse
     setTimeout(() => mapa.current?.invalidateSize(), 250);
     return () => { mapa.current?.remove(); mapa.current = null; marcador.current = null; capa.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // valor escrito a mano (coordenadas pegadas en un formulario): mueve el marcador y centra el mapa
+  useEffect(() => {
+    if (!valor || !mapa.current) return;
+    const p = marcador.current?.getLatLng();
+    if (p && Math.abs(p.lat - valor.lat) < 1e-7 && Math.abs(p.lng - valor.lng) < 1e-7) return;
+    poner(valor.lat, valor.lng, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valor?.lat, valor?.lng]);
 
   useEffect(() => {
     if (!mapa.current) return;
@@ -72,7 +81,7 @@ export default function SelectorUbicacion({ valor, onChange, alto = 'h-72' }: {
 
   return (
     <div className="sm:col-span-2">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+      {!soloLectura && <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <button type="button" onClick={miUbicacion} className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-2 rounded-lg cursor-pointer">
           {buscando ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />} Usar mi ubicación actual
         </button>
@@ -83,11 +92,11 @@ export default function SelectorUbicacion({ valor, onChange, alto = 'h-72' }: {
             </button>
           ))}
         </div>}
-      </div>
-      <div ref={contenedor} className={`${alto} w-full rounded-2xl overflow-hidden border border-gray-300 z-0`} aria-label="Mapa para marcar el lugar del hallazgo" />
-      <p className="text-[11px] text-gray-500 mt-1.5">
-        {valor ? `Punto marcado: ${valor.lat.toFixed(5)}, ${valor.lng.toFixed(5)}. Puedes arrastrar el marcador para ajustarlo.` : 'Toca el mapa en el lugar donde se encontró al animal.'}
-      </p>
+      </div>}
+      <div ref={contenedor} className={`${alto} w-full rounded-2xl overflow-hidden border border-gray-300 z-0`} aria-label="Mapa para marcar la ubicación" />
+      {!soloLectura && <p className="text-[11px] text-gray-500 mt-1.5">
+        {valor ? `Punto marcado: ${valor.lat.toFixed(5)}, ${valor.lng.toFixed(5)}. Puedes arrastrar el marcador para ajustarlo.` : 'Toca el mapa en el lugar exacto o usa tu ubicación actual.'}
+      </p>}
       {aviso && <p className="text-[11px] text-red-600 mt-1">{aviso}</p>}
     </div>
   );

@@ -12,6 +12,7 @@ import Legal from './components/Legal';
 import AvisoCookies from './components/AvisoCookies';
 import Restablecer from './components/Restablecer';
 import BotonWhatsApp from './components/BotonWhatsApp';
+import ModalReportar from './components/ModalReportar';
 import ModalHojaDeVida from './components/ModalHojaDeVida';
 import ModalAdopcion from './components/ModalAdopcion';
 import ModalRegistroHogar from './components/ModalRegistroHogar';
@@ -106,6 +107,7 @@ function AppContent() {
       <ModalMascotaPropia />
       <ModalManejoEspecial />
       <ModalDonar />
+      <ModalReportar />
       <BotonWhatsApp />
       <BarraMovil />
       <AvisoCookies />

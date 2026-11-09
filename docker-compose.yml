@@ -9,7 +9,7 @@ name: patas
 services:
   patas:
     build: .
-    image: patas:1.4
+    image: patas:1.5
     restart: unless-stopped
     ports:
       - "${PUERTO_WEB:-8080}:8080"

@@ -9,7 +9,7 @@ export class ErrorApi extends Error {
 const ACCIONES: Record<string, string> = {
   '/auth/registro': 'registro', '/auth/login': 'login', '/solicitudes': 'adopcion', '/mascotas-propias': 'mascota_propia',
   '/manejo-especial': 'manejo_especial', '/donaciones': 'donacion', '/hogares': 'hogar',
-  '/auth/olvide': 'recuperar', '/auth/olvide-correo': 'recuperar',
+  '/auth/olvide': 'recuperar', '/auth/olvide-correo': 'recuperar', '/reportes': 'reporte',
 };
 declare global {
   interface Window { grecaptcha?: { ready(cb: () => void): void; execute(clave: string, o: { action: string }): Promise<string> } }
@@ -17,7 +17,7 @@ declare global {
 export interface ConfigPublica {
   recaptchaSiteKey: string; whatsappBienestar: string; recuperacionPorCorreo: boolean;
   mapaTilesUrl?: string; mapaAtribucion?: string; mapaSateliteUrl?: string; mapaSateliteAtribucion?: string;
-  entidad?: { nombre: string; dependencia: string; direccion: string; correo: string; telefono: string; horario: string };
+  entidad?: { nombre: string; dependencia: string; direccion: string; correo: string; telefono: string; horario: string; lat: number | null; lng: number | null };
 }
 let configPublica: Promise<ConfigPublica> | null = null;
 /** Configuración pública del servidor (se pide una sola vez). */

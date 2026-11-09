@@ -309,7 +309,8 @@ export default async function rutasTramites(app: FastifyInstance) {
       (SELECT count(*)::int FROM mascotas_propias) AS mascotas_registradas,
       (SELECT count(*)::int FROM manejo_especial WHERE estado IN ('Radicado','En revisión')) AS manejo_especial_pendientes,
       (SELECT count(*)::int FROM donaciones WHERE estado='Nueva') AS donaciones_nuevas,
-      (SELECT count(*)::int FROM adopciones WHERE seguimiento <> 'Cerrado' AND proxima_visita <= current_date) AS seguimientos_vencidos`);
+      (SELECT count(*)::int FROM adopciones WHERE seguimiento <> 'Cerrado' AND proxima_visita <= current_date) AS seguimientos_vencidos,
+      (SELECT count(*)::int FROM reportes WHERE estado = 'Nuevo') AS reportes_nuevos`);
     return r;
   });
 }

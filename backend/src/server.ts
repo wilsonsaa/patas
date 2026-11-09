@@ -17,6 +17,7 @@ import rutasArchivos from './routes/archivos.js';
 import rutasRecuperacion from './routes/recuperacion.js';
 import rutasSeguimiento from './routes/seguimiento.js';
 import rutasRefugios from './routes/refugios.js';
+import rutasReportes from './routes/reportes.js';
 import { correoActivo } from './correo.js';
 
 const app = Fastify({
@@ -92,6 +93,7 @@ await app.register(rutasArchivos);
 await app.register(rutasRecuperacion);
 await app.register(rutasSeguimiento);
 await app.register(rutasRefugios);
+await app.register(rutasReportes);
 
 // Aplicación web compilada (imagen única): archivos estáticos + respaldo a index.html
 if (config.staticDir) {

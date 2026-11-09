@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Heart, PawPrint, ShieldAlert, Home, HandHeart, ArrowRight, Search, FileCheck2, HeartHandshake, Lock, ShieldCheck, Stethoscope, Quote, MapPin } from 'lucide-react';
+import { Siren, Heart, PawPrint, ShieldAlert, Home, HandHeart, ArrowRight, Search, FileCheck2, HeartHandshake, Lock, ShieldCheck, Stethoscope, Quote, MapPin } from 'lucide-react';
 import MascotaCard from './MascotaCard';
 
 const FOTOS = [
@@ -21,7 +21,7 @@ const Titulo = ({ children }: { children: React.ReactNode }) => (
 
 /** Página de inicio: cada bloque cuenta una sola cosa y ninguna acción se repite. */
 export default function Inicio() {
-  const { pets, refugios, adopcionesExitosas, setVistaActiva, setModalMascotaPropiaAbierto, setModalManejoEspecialAbierto, setModalRegistroHogarAbierto, setModalDonarAbierto } = useTheme();
+  const { pets, refugios, adopcionesExitosas, setVistaActiva, setModalMascotaPropiaAbierto, setModalManejoEspecialAbierto, setModalRegistroHogarAbierto, setModalDonarAbierto, setModalReportarAbierto } = useTheme();
 
   const disponibles = pets.filter((p) => p.estado === 'Disponible');
   const destacadas = disponibles.slice(0, 3);
@@ -101,8 +101,22 @@ export default function Inicio() {
         </div>
       </section>
 
+      {/* Animal en riesgo: la acción más urgente, visible apenas se entra */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-16">
+        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <span className="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0"><Siren className="w-6 h-6" /></span>
+          <div className="flex-1">
+            <h2 className="text-lg sm:text-xl font-black text-gray-900 font-heading">¿Viste un animal abandonado o herido?</h2>
+            <p className="text-sm text-gray-700">Marca en el mapa dónde está y el reporte llega de inmediato a la Dirección de Protección Animal.</p>
+          </div>
+          <button id="inicio-btn-reportar" onClick={() => setModalReportarAbierto(true)} className="shrink-0 px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold flex items-center justify-center gap-2 cursor-pointer">
+            <Siren className="w-5 h-5" /> Reportar ahora
+          </button>
+        </div>
+      </section>
+
       {/* 2. Ellos primero: una muestra, no el catálogo completo */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-24 pb-12">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-12">
         <div className="flex items-end justify-between gap-4 mb-7">
           <div>
             <Etiqueta>Te están esperando</Etiqueta>

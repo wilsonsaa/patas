@@ -1,6 +1,6 @@
 # PATAS · Guía de despliegue para la entidad
 
-**Plataforma de Acogida Temporal y Adopción Segura** · versión 1.4
+**Plataforma de Acogida Temporal y Adopción Segura** · versión 1.5
 
 Esta guía explica cómo construir y poner en producción PATAS a partir del código fuente. La plataforma se
 entrega **sin datos de prueba ni de ejemplo** y **sin claves dentro del código**: todas las contraseñas, claves y
@@ -33,10 +33,15 @@ secreto de sesión.
 
 ## 3. Obtener el código
 
-Descarga el paquete `patas-codigo-fuente-1.4.zip` y descomprímelo en el servidor, o clona el repositorio oficial:
+Hay dos caminos; los dos usan el mismo archivo `.env`:
+
+- **A. Imagen ya construida (más rápido).** La carpeta `produccion/` trae la imagen `patas-1.5.tar.gz`, un
+  `docker-compose.yml` que no compila nada y su propio `LEEME.md`. Basta con `docker load` y `docker compose up -d`.
+  La misma imagen puede publicarse en GitHub Container Registry (`ghcr.io`) para que el servidor la descargue.
+- **B. Construir desde el código.** Clona el repositorio oficial (o descomprime el paquete del código) y sigue esta guía:
 
 ```bash
-unzip patas-codigo-fuente-1.4.zip -d patas && cd patas
+git clone https://github.com/<organizacion>/patas.git && cd patas
 ```
 
 ## 4. Crear el archivo `.env`
@@ -66,7 +71,8 @@ El archivo `.env.example` trae cada variable explicada. Estas son las más impor
 |---|---|
 | `RECAPTCHA_SITE_KEY` y `RECAPTCHA_SECRET_KEY` | Protección contra robots (paso 6). |
 | `SMTP_*` y `NOTIFICACIONES_CORREO` | Recuperación de contraseña y avisos por correo (paso 7). |
-| `ENTIDAD_*` | Datos de contacto de la entidad que aparecen en el pie y en la política de privacidad. |
+| `ENTIDAD_*` | Datos de contacto de la entidad que aparecen en el pie, en la política de privacidad y al terminar un reporte. |
+| `ENTIDAD_LAT` y `ENTIDAD_LNG` | Coordenadas de la oficina de la Dirección. Si se definen, la oficina aparece en el mapa público como punto de atención. |
 | `WHATSAPP_BIENESTAR` | Número de la línea de bienestar animal (57 + número, solo dígitos). |
 | `JWT_SECRET` | Secreto de las sesiones. Si se deja vacío se genera solo y se guarda en el volumen. |
 
@@ -207,11 +213,14 @@ La plataforma arranca vacía. Con el administrador:
 
 1. **Ingresar** con el correo y la contraseña del administrador.
 2. **Panel → Refugios → Nuevo refugio.** Crea el refugio o centro de bienestar animal del municipio, con su dirección,
-   horario y ubicación en el mapa. Sin al menos un refugio u hogar verificado no se pueden publicar mascotas.
+   horario y ubicación en el mapa. Puedes pegar las coordenadas completas en el campo *Latitud*
+   (por ejemplo `4.724340, -74.246247`) y se llenan las dos. Sin al menos un refugio u hogar verificado no se pueden publicar mascotas.
 3. **Panel → Usuarios.** Asigna el rol **Gestor de refugio** al personal que publicará animales y gestionará solicitudes,
    y **Administrador** a quien deba tener control total.
 4. **Publicar** los animales disponibles (botón *Publicar*), con su lugar de hallazgo si se conoce.
-5. Revisar en **Panel → Hogares de paso** las inscripciones de la ciudadanía y marcarlas como *Verificado* después de
+5. Atender a diario **Panel → Reportes**: los avisos de animales abandonados o heridos que envía la ciudadanía, con su
+   ubicación en el mapa, foto y teléfono de quien reporta. Cada cambio de estado se notifica a quien reportó.
+6. Revisar en **Panel → Hogares de paso** las inscripciones de la ciudadanía y marcarlas como *Verificado* después de
    la visita.
 
 ## 10. Roles y permisos
@@ -224,6 +233,8 @@ inmediato. Desactivar una cuenta cierra sus sesiones abiertas.
 |---|:-:|:-:|:-:|:-:|:-:|
 | Ver mascotas, refugios y mapa | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Registrar una donación | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Reportar un animal abandonado o herido | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Ver sus propios reportes | | ✓ | ✓ | ✓ | ✓ |
 | Postularse a una adopción y ver sus solicitudes | | ✓ | ✓ | ✓ | ✓ |
 | Registrar su mascota y caninos de manejo especial | | ✓ | ✓ | ✓ | ✓ |
 | Inscribir un hogar de paso | | ✓ | | | |
@@ -231,6 +242,7 @@ inmediato. Desactivar una cuenta cierra sus sesiones abiertas.
 | Gestionar solicitudes de adopción | | | Las de sus animales (sin ver la cédula) | Todas | Todas |
 | Seguimiento de adopciones y mapa de hallazgos | | | Las de su hogar | Todas | Todas |
 | Georreferenciar el lugar de hallazgo | | | Sus animales | Todos | Todos |
+| Atender reportes de animales abandonados | | | | ✓ | ✓ |
 | Ver mascotas registradas y donaciones | | | | ✓ | ✓ |
 | Revisar caninos de manejo especial | | | | | ✓ |
 | Verificar hogares de paso y ver sus datos reservados | | | | | ✓ |
@@ -244,6 +256,8 @@ Reglas adicionales que aplica el servidor:
 - El rol de hogar de paso solo se obtiene cuando la administración verifica el hogar; si se suspende, se retira.
 - Una mascota con solicitudes activas o con adopción aprobada no se puede borrar, y solo el administrador puede
   cambiar el estado de un animal ya adoptado.
+- Un hogar de paso **nunca aparece en el mapa**: la base de datos no le permite guardar coordenadas y la API pública
+  no entrega su dirección, responsable ni teléfono. En el mapa solo hay refugios y la oficina de la Dirección.
 - Los hogares de paso se publican solo con su código: dirección, responsable y teléfono son reservados y cada
   consulta del administrador queda en la auditoría.
 

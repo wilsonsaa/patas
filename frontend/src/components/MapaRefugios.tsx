@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useTheme } from '../context/ThemeContext';
 import { useCapasMapa } from '../mapa';
+import { useEntidad } from '../legal';
 import { RefugioHogar } from '../types';
 import {
   MapPin,
@@ -29,9 +30,20 @@ const MOSQUERA_CENTER: [number, number] = [4.7060, -74.2300];
 const DEFAULT_ZOOM = 14;
 
 export default function MapaRefugios() {
-  const { refugios: lugares, setVistaActiva } = useTheme();
-  // Solo se georreferencian refugios institucionales. Los hogares de paso NO tienen ubicación pública.
-  const refugios = React.useMemo(() => lugares.filter((l) => l.tipo === 'refugio' && l.lat != null && l.lng != null), [lugares]);
+  const { refugios: lugares, setVistaActiva, whatsappBienestar } = useTheme();
+  const ent = useEntidad();
+  // Solo se georreferencian refugios institucionales y la oficina de atención.
+  // Los hogares de paso NUNCA tienen ubicación pública (ni la API ni la base de datos la guardan).
+  const refugios = React.useMemo(() => {
+    const lista = lugares.filter((l) => l.tipo === 'refugio' && l.lat != null && l.lng != null);
+    if (ent.lat != null && ent.lng != null) lista.unshift({
+      id: 'oficina-direccion', codigo: 'OFICINA', tipo: 'refugio', nombre: ent.dependencia.split('–').pop()?.trim() || 'Oficina de atención',
+      municipio: 'Mosquera, Cundinamarca', descripcion: 'Oficina de atención a la ciudadanía: trámites, reportes, adopciones y donaciones.',
+      capacidad: 0, mascotasActuales: 0, verificado: true, direccion: ent.direccion, telefono: ent.telefono, correo: ent.correo,
+      horario: ent.horario, responsable: ent.nombre, lat: ent.lat, lng: ent.lng,
+    });
+    return lista;
+  }, [lugares, ent]);
 
   const [filtro, setFiltro] = useState<'todos' | 'refugio' | 'hogar_paso'>('todos');
   const [lugarSeleccionado, setLugarSeleccionado] = useState<RefugioHogar | null>(null);
@@ -148,7 +160,7 @@ export default function MapaRefugios() {
               ? 'bg-emerald-700 border-emerald-300 text-white'
               : 'bg-amber-600 border-amber-300 text-white'
           }">
-            <span class="text-lg">${isRefugio ? '🏢' : '🐾'}</span>
+            <span class="text-lg">${lugar.codigo === 'OFICINA' ? '🏛️' : isRefugio ? '🏢' : '🐾'}</span>
           </div>
 
           <!-- Label floating underneath -->
@@ -174,7 +186,7 @@ export default function MapaRefugios() {
             <span class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
               isRefugio ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
             }">
-              ${isRefugio ? '🏢 Refugio Oficial' : '🏠 Hogar de Paso'}
+              ${lugar.codigo === 'OFICINA' ? '🏛️ Oficina de atención' : isRefugio ? '🏢 Refugio Oficial' : '🏠 Hogar de Paso'}
             </span>
             <span class="text-emerald-700 font-bold text-xs">✓ Verificado</span>
           </div>
@@ -182,7 +194,7 @@ export default function MapaRefugios() {
           <p class="text-xs text-gray-600 mb-2 flex items-start gap-1">
             <span>📍</span> <span>${esc(lugar.direccion)}</span>
           </p>
-          <div class="bg-gray-50 rounded-xl p-2 mb-2 text-xs border border-gray-200">
+          <div class="bg-gray-50 rounded-xl p-2 mb-2 text-xs border border-gray-200 ${lugar.capacidad ? '' : 'hidden'}">
             <div class="flex justify-between text-gray-600">
               <span>Capacidad:</span>
               <span class="font-bold text-gray-900">${lugar.mascotasActuales} / ${lugar.capacidad} mascotas</span>
@@ -445,7 +457,7 @@ export default function MapaRefugios() {
                           : 'bg-amber-600 text-white'
                       }`}
                     >
-                      {lugarSeleccionado.tipo === 'refugio' ? '🏢 Refugio Oficial' : '🏠 Hogar de Paso'}
+                      {lugarSeleccionado.codigo === 'OFICINA' ? '🏛️ Oficina de atención' : lugarSeleccionado.tipo === 'refugio' ? '🏢 Refugio Oficial' : '🏠 Hogar de Paso'}
                     </span>
                     <span className="text-xs font-bold text-emerald-700 flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Verificado
@@ -484,7 +496,7 @@ export default function MapaRefugios() {
                       <span>Horario de atención:</span>
                       <span className="font-bold text-gray-900 text-right">{lugarSeleccionado.horario}</span>
                     </div>
-                    <div className="flex justify-between text-gray-600">
+                    <div className={`flex justify-between text-gray-600 ${lugarSeleccionado.capacidad ? '' : 'hidden'}`}>
                       <span>Animales actualmente:</span>
                       <span className="font-extrabold text-emerald-700">
                         {lugarSeleccionado.mascotasActuales} de {lugarSeleccionado.capacidad} cupos
@@ -494,7 +506,7 @@ export default function MapaRefugios() {
 
                   <div className="grid grid-cols-2 gap-2 pt-1">
                     <a
-                      href={`https://wa.me/${(lugarSeleccionado.telefono ?? '').replace(/[^0-9]/g, '')}`}
+                      href={`https://wa.me/${lugarSeleccionado.codigo === 'OFICINA' && whatsappBienestar ? whatsappBienestar : (lugarSeleccionado.telefono ?? '').replace(/[^0-9]/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 px-3 rounded-xl flex items-center justify-center gap-1 shadow-sm transition-colors"
@@ -528,7 +540,7 @@ export default function MapaRefugios() {
                             isRefugio ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {isRefugio ? 'Refugio Oficial' : 'Hogar de Paso'}
+                          {lugar.codigo === 'OFICINA' ? 'Oficina de atención' : isRefugio ? 'Refugio Oficial' : 'Hogar de Paso'}
                         </span>
                         <span className="text-[10px] text-gray-400 group-hover:text-emerald-700 font-bold flex items-center gap-0.5">
                           Ver en mapa →
@@ -542,7 +554,7 @@ export default function MapaRefugios() {
                         <span className="truncate">{lugar.direccion}</span>
                       </p>
                       <div className="mt-2 pt-2 border-t border-gray-200/60 flex justify-between items-center text-[10px] text-gray-500">
-                        <span>Capacidad: {lugar.mascotasActuales}/{lugar.capacidad}</span>
+                        <span>{lugar.capacidad ? `Capacidad: ${lugar.mascotasActuales}/${lugar.capacidad}` : 'Atención a la ciudadanía'}</span>
                         <span className="font-semibold text-emerald-800">Sector Mosquera</span>
                       </div>
                     </div>

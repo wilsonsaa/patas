@@ -278,3 +278,40 @@ test('permisos: roles y reglas de integridad', async () => {
     assert.equal((await hogar('PATCH', `/api/mascotas/${mascotaHogar.id}/estado`, { estado: 'Disponible' })).status, 409);
   }
 });
+
+// ---------- Versión 1.5 ----------
+test('un hogar de paso nunca queda en el mapa', async () => {
+  const lugares = (await anon('GET', '/api/lugares')).datos;
+  for (const h of lugares.filter((l) => l.tipo === 'hogar_paso')) {
+    assert.equal(h.lat, undefined); assert.equal(h.lng, undefined); assert.equal(h.direccion, undefined);
+  }
+  // ni siquiera la base de datos acepta coordenadas para un hogar
+  const ref = (await admin('GET', '/api/admin/refugios')).datos[0];
+  assert.ok(ref.lat != null, 'los refugios sí se ubican');
+});
+
+test('reportar un animal abandonado (sin cuenta) y atenderlo', async () => {
+  const base = { especie: 'perro', condicion: 'Herido', cantidad: 1, descripcion: 'Perro café cojeando cerca del parque', lat: 4.7074, lng: -74.2303,
+    referencia: 'Parque principal', nombre: 'Marta Ruiz', telefono: '3001234567', correo: 'marta@prueba.test', aceptaDatos: true };
+  assert.equal((await anon('POST', '/api/reportes', { ...base, lat: 6.2, lng: -75.5 })).status, 400, 'fuera de Mosquera');
+  assert.equal((await anon('POST', '/api/reportes', { ...base, aceptaDatos: false })).status, 400);
+  const r = await anon('POST', '/api/reportes', base);
+  assert.equal(r.status, 201);
+  assert.match(r.datos.radicado, /^RAB-\d{4}-\d{5}$/);
+  assert.match(r.datos.mapa, /google\.com\/maps\?q=4\.7074,-74\.2303/);
+  assert.equal((await anon('GET', '/api/gestion/reportes')).status, 401);
+  assert.equal((await ana('GET', '/api/gestion/reportes')).status, 403, 'un ciudadano no ve los reportes de otros');
+  const lista = (await admin('GET', '/api/gestion/reportes')).datos;
+  const mio = lista.find((x) => x.radicado === r.datos.radicado);
+  assert.equal(mio.telefono, '3001234567');
+  assert.equal((await admin('PATCH', `/api/gestion/reportes/${mio.id}`, { estado: 'Rescatado', notas: 'Llevado al refugio' })).status, 200);
+  // un ciudadano con cuenta ve sus propios reportes
+  const r2 = await ana('POST', '/api/reportes', { ...base, condicion: 'Aparentemente sano', correo: '' });
+  assert.equal(r2.status, 201);
+  assert.ok((await ana('GET', '/api/reportes/mios')).datos.some((x) => x.radicado === r2.datos.radicado));
+});
+
+test('la oficina de la Dirección se publica desde la configuración', async () => {
+  const c = (await anon('GET', '/api/config')).datos;
+  assert.ok('lat' in c.entidad && 'lng' in c.entidad);
+});

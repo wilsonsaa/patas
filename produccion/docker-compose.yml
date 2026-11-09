@@ -1,0 +1,30 @@
+# PATAS 1.5 · despliegue con la imagen ya construida (no compila nada).
+#
+#   1) docker load -i patas-1.5.tar.gz         (o descárgala de ghcr.io, ver LEEME.md)
+#   2) cp .env.example .env                    y completa los valores
+#   3) docker compose up -d
+#
+# Para usar la imagen publicada en GitHub, define en el .env:
+#   PATAS_IMAGEN=ghcr.io/<organizacion>/patas:1.5
+name: patas
+
+services:
+  patas:
+    image: ${PATAS_IMAGEN:-patas:1.5}
+    restart: unless-stopped
+    ports:
+      - "${PUERTO_WEB:-8080}:8080"
+    env_file:
+      - .env                       # todas las claves y secretos viven SOLO en este archivo
+    environment:
+      PGPASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+    volumes:
+      - datos:/data                # base de datos, fotos subidas y secreto de sesión
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    stop_grace_period: 30s
+
+volumes:
+  datos:

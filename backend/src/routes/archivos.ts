@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { config } from '../config.js';
-import { ErrorHttp, exigir } from '../auth.js';
+import { ErrorHttp } from '../auth.js';
 
 /** Identifica el tipo real del archivo por sus primeros bytes (no por el nombre ni el Content-Type). */
 function tipoReal(b: Buffer): 'jpg' | 'png' | 'webp' | null {
@@ -16,8 +16,8 @@ function tipoReal(b: Buffer): 'jpg' | 'png' | 'webp' | null {
 export default async function rutasArchivos(app: FastifyInstance) {
   await mkdir(config.uploadDir, { recursive: true });
 
-  app.post('/api/archivos', { config: { rateLimit: { max: 30, timeWindow: '10 minutes' } } }, async (req, reply) => {
-    await exigir(req);
+  // Sin cuenta se permite subir fotos (reporte de animal abandonado) con un límite más bajo por IP
+  app.post('/api/archivos', { config: { rateLimit: { max: 15, timeWindow: '10 minutes' } } }, async (req, reply) => {
     const archivo = await req.file();
     if (!archivo) throw new ErrorHttp(400, 'No se recibió ningún archivo.');
     const datos = await archivo.toBuffer(); // lanza error si supera el límite configurado

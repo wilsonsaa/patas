@@ -7,3 +7,9 @@ dist/
 .DS_Store
 uploads/
 _respaldo_prototipo/
+
+# Imagen de producción (se comparte aparte o por ghcr.io; nunca en git)
+produccion/*.tar
+produccion/*.tar.gz
+produccion/*.parte*
+produccion/.env

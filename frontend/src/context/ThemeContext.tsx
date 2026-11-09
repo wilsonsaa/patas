@@ -71,6 +71,8 @@ interface ThemeContextType {
   setModalManejoEspecialAbierto: (open: boolean) => void;
   modalDonarAbierto: boolean;
   setModalDonarAbierto: (open: boolean) => void;
+  modalReportarAbierto: boolean;
+  setModalReportarAbierto: (open: boolean) => void;
   vistaActiva: Vista;
   setVistaActiva: (vista: Vista) => void;
   // Avisos
@@ -106,6 +108,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [modalMascotaPropia, setModalMascotaPropia] = useState(false);
   const [modalManejoEspecial, setModalManejoEspecial] = useState(false);
   const [modalDonarAbierto, setModalDonarAbierto] = useState(false);
+  const [modalReportarAbierto, setModalReportarAbierto] = useState(false);
   const [vistaActiva, setVistaInterna] = useState<Vista>(vistaDeHash);
   const setVistaActiva = useCallback((vista: Vista) => {
     const destino = vista === 'inicio' ? '#/' : `#/${RUTA[vista] ?? vista}`;
@@ -295,12 +298,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     modalMascotaPropiaAbierto: modalMascotaPropia, setModalMascotaPropiaAbierto,
     modalManejoEspecialAbierto: modalManejoEspecial, setModalManejoEspecialAbierto,
     modalDonarAbierto, setModalDonarAbierto,
+    modalReportarAbierto, setModalReportarAbierto,
     vistaActiva, setVistaActiva,
     toasts, addToast, removeToast,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [cargando, pets, refugios, solicitudes, adopcionesExitosas, usuarioActivo, mascotaSeleccionada, mascotaParaAdoptarInterna,
     modalRegistroHogar, modalSubirMascota, modalRegistroAdoptanteAbierto, modalMascotaPropia, modalManejoEspecial,
-    modalDonarAbierto, vistaActiva, toasts, whatsappBienestar, recuperacionPorCorreo]);
+    modalDonarAbierto, modalReportarAbierto, vistaActiva, toasts, whatsappBienestar, recuperacionPorCorreo]);
 
   return <ThemeContext.Provider value={valor}>{children}</ThemeContext.Provider>;
 }
